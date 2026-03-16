@@ -1,0 +1,27 @@
+:root {
+  /* ===== BRAND ===== */
+  --color-primary: 124 58 237;
+
+  /* ===== GLOBAL BACKGROUND ===== */
+  --bg-main: 15 23 42;        /* DARK (login + sidebar + header) */
+  --bg-muted: 241 245 249;    /* Page background */
+  --bg-card: 255 255 255;     /* Cards */
+
+  /* ===== TEXT ===== */
+  --text-primary: 15 23 42;
+  --text-secondary: 100 116 139;
+  --text-white: 255 255 255;
+
+  /* ===== SIDEBAR ===== */
+  --sidebar-bg: 15 23 42;
+  --sidebar-text: 226 232 240;
+  --sidebar-active-bg: 124 58 237;
+  --sidebar-active-text: 255 255 255;
+  --sidebar-hover-bg: 124 58 237 / 0.2;
+  --sidebar-border: 255 255 255 / 0.08;
+
+  /* ===== HEADER ===== */
+  --header-bg: 15 23 42;
+  --header-text: 226 232 240;
+  --header-border: 255 255 255 / 0.08;
+}
