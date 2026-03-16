@@ -16,7 +16,7 @@ import { ROLES } from "../../utils/roles";
 export const menuConfig = {
   [ROLES.ADMIN]: [
     { name: "Dashboard", icon: FaHome, path: "/admin" },
-    { name: "Users", icon: FaUsers, path: "/admin/users" },
+    { name: "User", icon: FaUsers, path: "User" },
     { name: "Posts", icon: FaLayerGroup, path: "/admin/posts" },
     { name: "Settings", icon: FaCog, path: "/admin/settings" },
   ],
