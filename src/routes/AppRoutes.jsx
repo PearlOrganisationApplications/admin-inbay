@@ -8,6 +8,7 @@ import AdminDashboard from "../pages/admin/AdminDashboard";
 import RoleLogin from "../pages/auth/RoleLogin";
 import NotFound from "../pages/notFound/NotFound";
 import User from "../pages/admin/User";
+import Attendance from "../pages/Hrms/Attendance";
 
 const AppRoutes = () => {
   return (
@@ -19,6 +20,7 @@ const AppRoutes = () => {
       <Route element={<DashboardLayout />}>
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="User" element={<User />} />
+        <Route path="Attendance" element={<Attendance />} />
       </Route>
 
       <Route path="*" element={<NotFound />} />

@@ -127,7 +127,7 @@ export default function Header() {
             <FaChevronDown className="text-gray-400 text-sm" />
           </button>
 
-          {/* Dropdown */}
+          {/* Dropdown */} 
           {open && (
             <div className="absolute right-0 mt-3 w-44 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
               <button className="w-full text-left px-4 py-3 text-sm hover:bg-gray-100">
