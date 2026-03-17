@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { FaUserPlus } from "react-icons/fa";
 import { 
   Search, 
   Filter, 
@@ -8,7 +7,8 @@ import {
   ChevronRight, 
   Users, 
   UserCheck, 
-  UserX 
+  UserX,
+  Eye 
 } from "lucide-react";
 
 const ITEMS_PER_PAGE = 10;
@@ -18,12 +18,12 @@ const User = () => {
   
   // New States for Search, Filter & Pagination
   const [searchQuery, setSearchQuery] = useState("");
-  const[roleFilter, setRoleFilter] = useState("");
+  const [roleFilter, setRoleFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
-  const[currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
 
   // ----------------------------------------------------------------------
-  // 1. API Fetch Logic (Exactly as you provided, untouched)
+  // 1. API Fetch Logic 
   // ----------------------------------------------------------------------
   useEffect(() => {
     fetchUsers();
@@ -143,11 +143,6 @@ const User = () => {
             <Download size={16} />
             Export Data
           </button>
-          
-          <button className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-purple-700 shadow-sm transition-colors">
-            <FaUserPlus size={16} />
-            Add User
-          </button>
         </div>
       </div>
 
@@ -248,7 +243,7 @@ const User = () => {
             </div>
           ) : (
             <>
-              {/* DESKTOP TABLE (Structure Intact) */}
+              {/* DESKTOP TABLE */}
               <div className="hidden md:block bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
                 <table className="w-full text-sm">
                   <thead className="bg-gray-50 text-left text-gray-600 border-b border-gray-200">
@@ -257,7 +252,7 @@ const User = () => {
                       <th className="p-4 font-semibold uppercase tracking-wider text-xs">Email</th>
                       <th className="p-4 font-semibold uppercase tracking-wider text-xs">Role</th>
                       <th className="p-4 font-semibold uppercase tracking-wider text-xs">Status</th>
-                      <th className="p-4 font-semibold uppercase tracking-wider text-xs">Action</th>
+                      <th className="p-4 font-semibold uppercase tracking-wider text-xs text-center">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
@@ -288,10 +283,14 @@ const User = () => {
                             {user.email_verified_at ? "Active" : "Inactive"}
                           </span>
                         </td>
-                        <td className="p-4 space-x-3 font-medium">
-                          <button className="text-blue-600 hover:text-blue-800 transition">View</button>
-                          <button className="text-purple-600 hover:text-purple-800 transition">Edit</button>
-                          <button className="text-red-500 hover:text-red-700 transition">Delete</button>
+                        <td className="p-4 text-center">
+                          {/* Cool Eye Button Desktop */}
+                          <button 
+                            className="p-2 inline-flex items-center justify-center text-blue-600 bg-blue-50 rounded-full hover:bg-blue-600 hover:text-white transition-all duration-300 shadow-sm"
+                            title="View User"
+                          >
+                            <Eye size={18} />
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -299,7 +298,7 @@ const User = () => {
                 </table>
               </div>
 
-              {/* MOBILE CARDS (Structure Intact) */}
+              {/* MOBILE CARDS */}
               <div className="grid md:hidden gap-4">
                 {paginatedUsers.map((user) => (
                   <div key={user.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 space-y-4 relative overflow-hidden">
@@ -333,10 +332,12 @@ const User = () => {
                       </span>
                     </div>
 
-                    <div className="flex gap-4 text-sm font-medium pl-2 pt-1">
-                      <button className="text-blue-600 flex-1 bg-blue-50 py-1.5 rounded-lg hover:bg-blue-100">View</button>
-                      <button className="text-purple-600 flex-1 bg-purple-50 py-1.5 rounded-lg hover:bg-purple-100">Edit</button>
-                      <button className="text-red-600 flex-1 bg-red-50 py-1.5 rounded-lg hover:bg-red-100">Delete</button>
+                    {/* Cool Eye Button Mobile */}
+                    <div className="pt-1 pl-2">
+                      <button className="w-full flex items-center justify-center gap-2 text-blue-600 bg-blue-50 hover:bg-blue-600 hover:text-white py-2 rounded-lg font-semibold transition-all duration-300 shadow-sm">
+                        <Eye size={18} />
+                        View Details
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -364,7 +365,6 @@ const User = () => {
             </button>
             
             <div className="flex items-center gap-1">
-              {/* Logic to show limited page numbers can be added here if needed, showing all for now */}
               {[...Array(totalPages)].map((_, i) => (
                 <button
                   key={i}
