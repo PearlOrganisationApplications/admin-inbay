@@ -31,12 +31,12 @@ export const menuConfig = {
         },
         {
           name: "Daily Report",
-          path: "/daily-report",
+          path: "/Dailyreports",
           icon: FaFileAlt, // 📄 report icon
         },
         {
           name: "Visit",
-          path: "/visit",
+          path: "/Visit",
           icon: FaMapMarkerAlt, // 📍 visit icon
         },
       ],
