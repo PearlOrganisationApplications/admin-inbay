@@ -9,6 +9,8 @@ import RoleLogin from "../pages/auth/RoleLogin";
 import NotFound from "../pages/notFound/NotFound";
 import User from "../pages/admin/User";
 import Attendance from "../pages/Hrms/Attendance";
+import Dailyreports from "../pages/Hrms/Dailyreports";
+import Visit from "../pages/Hrms/Visit";
 
 const AppRoutes = () => {
   return (
@@ -21,6 +23,8 @@ const AppRoutes = () => {
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="User" element={<User />} />
         <Route path="Attendance" element={<Attendance />} />
+        <Route path="Dailyreports" element={<Dailyreports />} />
+        <Route path="Visit" element={<Visit />} />
       </Route>
 
       <Route path="*" element={<NotFound />} />
