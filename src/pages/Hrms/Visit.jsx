@@ -1,7 +1,7 @@
 import React from "react";
 
 const Visit = () => {
-  // 📋 Client data mapped according to your fields
+  // 📋 Client data
   const visitData = [
     {
       salesRepEmail: "john@test.com",
@@ -29,7 +29,6 @@ const Visit = () => {
       visitDistance: "15 KM",
       durationTime: "1h 30m",
     },
-    // Aap yahan aur data add kar sakte hain...
   ];
 
   // ✅ Export CSV Function
@@ -51,22 +50,67 @@ const Visit = () => {
   };
 
   return (
-    <div className="p-4 md:p-6 bg-gray-50 h-screen overflow-hidden flex flex-col font-sans">
-      {/* HEADER SECTION */}
-      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center mb-6 shrink-0">
+    <div className="p-4 md:p-8 bg-gray-50 h-screen overflow-hidden flex flex-col font-sans">
+      {/* 1. TOP TITLE SECTION - Same as Attendance Log */}
+      <div className="flex justify-between items-center mb-6 shrink-0 border-b border-gray-200 pb-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800">Visit Logs</h2>
-          <p className="text-sm text-gray-500 mt-1">
+          <h2 className="text-3xl font-bold text-gray-800 tracking-tight">
+            Visit Logs
+          </h2>
+          <p className="text-sm text-gray-500 font-medium">
             Track sales rep visits, customer details, and outcomes
           </p>
         </div>
 
         <button
           onClick={handleExport}
-          className="bg-purple-600 text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-purple-700 flex items-center gap-2 transition-all shadow-sm"
+          className="bg-[#8b2cf5] text-white px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-[#7a26d9] flex items-center gap-2 transition-all shadow-md"
         >
           <svg
             className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            strokeWidth="2.5"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+            />
+          </svg>
+          Export CSV
+        </button>
+      </div>
+
+      {/* 2. SEARCH & FILTER SECTION - Same Style */}
+      <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-8 shrink-0">
+        <div className="relative w-full md:max-w-md">
+          <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+            <svg
+              className="w-5 h-5 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+          </div>
+          <input
+            type="text"
+            placeholder="Search by Sales Rep or Customer..."
+            className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-200 focus:border-purple-400 transition-all shadow-sm"
+          />
+        </div>
+
+        <div className="flex items-center gap-3 bg-white border border-gray-200 px-4 py-2.5 rounded-xl cursor-pointer hover:bg-gray-50 transition-colors shadow-sm w-full md:w-auto">
+          <svg
+            className="w-5 h-5 text-[#8b2cf5]"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -75,25 +119,109 @@ const Visit = () => {
               strokeLinecap="round"
               strokeLinejoin="round"
               strokeWidth="2"
-              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+              d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
             />
           </svg>
-          Export CSV
-        </button>
+          <span className="text-sm font-semibold text-gray-700">
+            All Departments
+          </span>
+        </div>
       </div>
 
-      {/* SCROLLABLE LIST OF CARDS */}
-      <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar">
+      {/* 3. STATS CARDS SECTION - Matching UI */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10 shrink-0">
+        {/* Total Visits */}
+        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-5">
+          <div className="w-14 h-14 bg-purple-50 rounded-2xl flex items-center justify-center text-[#8b2cf5]">
+            <svg
+              className="w-8 h-8"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+              />
+            </svg>
+          </div>
+          <div>
+            <p className="text-sm font-bold text-gray-500 mb-1">Total Visits</p>
+            <p className="text-3xl font-black text-gray-900">42</p>
+          </div>
+        </div>
+
+        {/* Total Orders */}
+        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-5">
+          <div className="w-14 h-14 bg-green-50 rounded-2xl flex items-center justify-center text-green-600">
+            <svg
+              className="w-8 h-8"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+          </div>
+          <div>
+            <p className="text-sm font-bold text-gray-500 mb-1">
+              Orders Placed
+            </p>
+            <p className="text-3xl font-black text-gray-900">28</p>
+          </div>
+        </div>
+
+        {/* Pending/Cancelled */}
+        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-5">
+          <div className="w-14 h-14 bg-red-50 rounded-2xl flex items-center justify-center text-red-500">
+            <svg
+              className="w-8 h-8"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+          </div>
+          <div>
+            <p className="text-sm font-bold text-gray-500 mb-1">
+              Total Expenses
+            </p>
+            <p className="text-3xl font-black text-gray-900">₹12.5k</p>
+          </div>
+        </div>
+      </div>
+
+      {/* SCROLLABLE LIST OF CARDS (USER SECTION - NO CHANGES HERE) */}
+      <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar pb-10">
         {visitData.map((item, index) => (
           <div
             key={index}
             className="bg-white rounded-xl shadow-sm border border-gray-100 p-5"
           >
-            {/* CARD TOP INFO: Sales Rep Details */}
+            {/* CARD TOP INFO */}
             <div className="flex justify-between items-start mb-6">
               <div className="flex gap-4 items-center">
                 {/* Avatar */}
-                <div className="w-14 h-14 rounded-full bg-purple-600 text-white flex items-center justify-center text-xl font-bold shadow-sm">
+                <div className="w-14 h-14 rounded-full bg-[#8b2cf5] text-white flex items-center justify-center text-xl font-bold shadow-sm">
                   {item.salesRep.charAt(0)}
                 </div>
 
@@ -139,7 +267,7 @@ const Visit = () => {
 
                   {/* Tags */}
                   <div className="flex gap-2 mt-2.5">
-                    <span className="bg-purple-50 text-purple-700 text-[11px] px-2.5 py-1 rounded-md font-semibold tracking-wide">
+                    <span className="bg-purple-50 text-[#8b2cf5] text-[11px] px-2.5 py-1 rounded-md font-semibold tracking-wide">
                       {item.department}
                     </span>
                     <span className="bg-gray-100 text-gray-600 text-[11px] px-2.5 py-1 rounded-md font-semibold tracking-wide border border-gray-200">
@@ -191,7 +319,7 @@ const Visit = () => {
               {/* Box 1: Customer Details */}
               <div className="border border-gray-100 rounded-xl p-4 bg-gray-50/50 flex flex-col justify-between">
                 <div>
-                  <h4 className="text-[11px] font-bold text-purple-600 flex items-center gap-1.5 mb-3 uppercase tracking-wider">
+                  <h4 className="text-[11px] font-bold text-[#8b2cf5] flex items-center gap-1.5 mb-3 uppercase tracking-wider">
                     <svg
                       className="w-4 h-4"
                       fill="none"
@@ -242,7 +370,7 @@ const Visit = () => {
               {/* Box 2: Time Tracking */}
               <div className="border border-gray-100 rounded-xl p-4 bg-gray-50/50 flex flex-col justify-between">
                 <div>
-                  <h4 className="text-[11px] font-bold text-purple-600 flex items-center gap-1.5 mb-3 uppercase tracking-wider">
+                  <h4 className="text-[11px] font-bold text-[#8b2cf5] flex items-center gap-1.5 mb-3 uppercase tracking-wider">
                     <svg
                       className="w-4 h-4"
                       fill="none"
@@ -282,16 +410,16 @@ const Visit = () => {
                 </div>
                 <div className="flex justify-between items-center pt-2 mt-2 border-t border-gray-100 text-sm">
                   <span className="text-gray-500">Duration</span>
-                  <span className="bg-purple-100 text-purple-700 text-xs px-2.5 py-1.5 rounded-md font-bold">
+                  <span className="bg-purple-100 text-[#8b2cf5] text-xs px-2.5 py-1.5 rounded-md font-bold">
                     {item.durationTime}
                   </span>
                 </div>
               </div>
 
-              {/* Box 3: Outcomes & Remarks */}
+              {/* Box 3: Outcomes */}
               <div className="border border-gray-100 rounded-xl p-4 bg-gray-50/50 flex flex-col justify-between">
                 <div>
-                  <h4 className="text-[11px] font-bold text-purple-600 flex items-center gap-1.5 mb-3 uppercase tracking-wider">
+                  <h4 className="text-[11px] font-bold text-[#8b2cf5] flex items-center gap-1.5 mb-3 uppercase tracking-wider">
                     <svg
                       className="w-4 h-4"
                       fill="none"
