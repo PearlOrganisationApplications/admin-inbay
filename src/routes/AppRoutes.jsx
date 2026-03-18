@@ -11,6 +11,7 @@ import User from "../pages/admin/User";
 import Attendance from "../pages/Hrms/Attendance";
 import Dailyreports from "../pages/Hrms/Dailyreports";
 import Visit from "../pages/Hrms/Visit";
+import Setting from "../pages/Setting/Setting";
 
 const AppRoutes = () => {
   return (
@@ -25,6 +26,7 @@ const AppRoutes = () => {
         <Route path="Attendance" element={<Attendance />} />
         <Route path="Dailyreports" element={<Dailyreports />} />
         <Route path="Visit" element={<Visit />} />
+        <Route path="settings" element={<Setting />} />
       </Route>
 
       <Route path="*" element={<NotFound />} />

@@ -44,7 +44,7 @@ export const menuConfig = {
     {
       name: "Settings",
       icon: FaCog,
-      path: "/admin/settings",
+      path: "/settings",
     },
   ],
 };
