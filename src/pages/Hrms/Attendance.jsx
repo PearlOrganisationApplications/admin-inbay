@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { 
   CheckCircle, 
   XCircle, 
@@ -18,32 +18,71 @@ import {
   UserX
 } from "lucide-react";
 
-// 15 Static Dummy Records
-const initialData =[
-  { id: 1, date: "2026-03-17", day: "Tuesday", name: "John Doe", email: "john@test.com", group: "A", department: "Sales", attendance: "Present", scheduledStart: "09:00 AM", scheduledEnd: "06:00 PM", actualStart: "09:10 AM", actualEnd: "05:50 PM", totalHours: "8h 40m", location: "Office", endLocation: "Home", remarks: "Client meetings.", distance: "12", morningRemark: "On Time", eveningRemark: "Left Early", morningOdo: "1200", eveningOdo: "1212", totalOdo: "12" },
-  { id: 2, date: "2026-03-17", day: "Tuesday", name: "Sarah Smith", email: "sarah@test.com", group: "B", department: "Marketing", attendance: "Absent", scheduledStart: "09:30 AM", scheduledEnd: "06:30 PM", actualStart: "-", actualEnd: "-", totalHours: "0h 0m", location: "Remote", endLocation: "-", remarks: "Sick Leave", distance: "0", morningRemark: "-", eveningRemark: "-", morningOdo: "-", eveningOdo: "-", totalOdo: "0" },
-  { id: 3, date: "2026-03-17", day: "Tuesday", name: "Michael Johnson", email: "michael@test.com", group: "A", department: "IT", attendance: "Present", scheduledStart: "10:00 AM", scheduledEnd: "07:00 PM", actualStart: "09:55 AM", actualEnd: "07:05 PM", totalHours: "9h 10m", location: "HQ", endLocation: "Home", remarks: "Server maintenance.", distance: "15", morningRemark: "Early", eveningRemark: "Late", morningOdo: "5000", eveningOdo: "5015", totalOdo: "15" },
-  { id: 4, date: "2026-03-17", day: "Tuesday", name: "Emily Davis", email: "emily@test.com", group: "C", department: "HR", attendance: "Present", scheduledStart: "09:00 AM", scheduledEnd: "06:00 PM", actualStart: "09:05 AM", actualEnd: "06:00 PM", totalHours: "8h 55m", location: "Office", endLocation: "Gym", remarks: "Interviews all day.", distance: "8", morningRemark: "On Time", eveningRemark: "On Time", morningOdo: "340", eveningOdo: "348", totalOdo: "8" },
-  { id: 5, date: "2026-03-17", day: "Tuesday", name: "David Wilson", email: "david@test.com", group: "B", department: "Finance", attendance: "Absent", scheduledStart: "09:30 AM", scheduledEnd: "06:30 PM", actualStart: "-", actualEnd: "-", totalHours: "0h 0m", location: "Office", endLocation: "-", remarks: "Personal Emergency", distance: "0", morningRemark: "-", eveningRemark: "-", morningOdo: "-", eveningOdo: "-", totalOdo: "0" },
-  { id: 6, date: "2026-03-17", day: "Tuesday", name: "Jessica Brown", email: "jessica@test.com", group: "A", department: "Sales", attendance: "Present", scheduledStart: "09:00 AM", scheduledEnd: "06:00 PM", actualStart: "09:00 AM", actualEnd: "06:15 PM", totalHours: "9h 15m", location: "Field", endLocation: "Home", remarks: "Met 3 prospects.", distance: "45", morningRemark: "On Time", eveningRemark: "Late", morningOdo: "100", eveningOdo: "145", totalOdo: "45" },
-  { id: 7, date: "2026-03-17", day: "Tuesday", name: "Robert Taylor", email: "robert@test.com", group: "C", department: "Support", attendance: "Present", scheduledStart: "02:00 PM", scheduledEnd: "11:00 PM", actualStart: "01:50 PM", actualEnd: "11:00 PM", totalHours: "9h 10m", location: "Remote", endLocation: "Remote", remarks: "Handled 40 tickets.", distance: "0", morningRemark: "Early", eveningRemark: "On Time", morningOdo: "-", eveningOdo: "-", totalOdo: "0" },
-  { id: 8, date: "2026-03-17", day: "Tuesday", name: "Olivia Martinez", email: "olivia@test.com", group: "B", department: "Marketing", attendance: "Present", scheduledStart: "10:00 AM", scheduledEnd: "07:00 PM", actualStart: "10:15 AM", actualEnd: "07:00 PM", totalHours: "8h 45m", location: "Office", endLocation: "Home", remarks: "Campaign launch.", distance: "10", morningRemark: "Late", eveningRemark: "On Time", morningOdo: "890", eveningOdo: "900", totalOdo: "10" },
-  { id: 9, date: "2026-03-17", day: "Tuesday", name: "William Anderson", email: "william@test.com", group: "A", department: "IT", attendance: "Present", scheduledStart: "09:00 AM", scheduledEnd: "06:00 PM", actualStart: "08:45 AM", actualEnd: "06:30 PM", totalHours: "9h 45m", location: "HQ", endLocation: "Home", remarks: "System deployment.", distance: "20", morningRemark: "Early", eveningRemark: "Late", morningOdo: "1500", eveningOdo: "1520", totalOdo: "20" },
-  { id: 10, date: "2026-03-17", day: "Tuesday", name: "Sophia Thomas", email: "sophia@test.com", group: "C", department: "HR", attendance: "Absent", scheduledStart: "09:00 AM", scheduledEnd: "06:00 PM", actualStart: "-", actualEnd: "-", totalHours: "0h 0m", location: "Office", endLocation: "-", remarks: "Paid Leave", distance: "0", morningRemark: "-", eveningRemark: "-", morningOdo: "-", eveningOdo: "-", totalOdo: "0" },
-  { id: 11, date: "2026-03-17", day: "Tuesday", name: "James Jackson", email: "james@test.com", group: "B", department: "Finance", attendance: "Present", scheduledStart: "09:30 AM", scheduledEnd: "06:30 PM", actualStart: "09:30 AM", actualEnd: "06:30 PM", totalHours: "9h 0m", location: "Office", endLocation: "Home", remarks: "Audit preparation.", distance: "14", morningRemark: "On Time", eveningRemark: "On Time", morningOdo: "2100", eveningOdo: "2114", totalOdo: "14" },
-  { id: 12, date: "2026-03-17", day: "Tuesday", name: "Isabella White", email: "isabella@test.com", group: "A", department: "Sales", attendance: "Present", scheduledStart: "09:00 AM", scheduledEnd: "06:00 PM", actualStart: "09:20 AM", actualEnd: "05:40 PM", totalHours: "8h 20m", location: "Field", endLocation: "Home", remarks: "Traffic delay.", distance: "30", morningRemark: "Late", eveningRemark: "Left Early", morningOdo: "400", eveningOdo: "430", totalOdo: "30" },
-  { id: 13, date: "2026-03-17", day: "Tuesday", name: "Benjamin Harris", email: "benjamin@test.com", group: "C", department: "Support", attendance: "Present", scheduledStart: "02:00 PM", scheduledEnd: "11:00 PM", actualStart: "02:00 PM", actualEnd: "11:15 PM", totalHours: "9h 15m", location: "Remote", endLocation: "Remote", remarks: "Extended call.", distance: "0", morningRemark: "On Time", eveningRemark: "Late", morningOdo: "-", eveningOdo: "-", totalOdo: "0" },
-  { id: 14, date: "2026-03-17", day: "Tuesday", name: "Mia Martin", email: "mia@test.com", group: "B", department: "Marketing", attendance: "Present", scheduledStart: "10:00 AM", scheduledEnd: "07:00 PM", actualStart: "09:50 AM", actualEnd: "07:00 PM", totalHours: "9h 10m", location: "Office", endLocation: "Home", remarks: "-", distance: "11", morningRemark: "Early", eveningRemark: "On Time", morningOdo: "310", eveningOdo: "321", totalOdo: "11" },
-  { id: 15, date: "2026-03-17", day: "Tuesday", name: "Lucas Garcia", email: "lucas@test.com", group: "A", department: "IT", attendance: "Absent", scheduledStart: "09:00 AM", scheduledEnd: "06:00 PM", actualStart: "-", actualEnd: "-", totalHours: "0h 0m", location: "HQ", endLocation: "-", remarks: "Half Day Leave", distance: "0", morningRemark: "-", eveningRemark: "-", morningOdo: "-", eveningOdo: "-", totalOdo: "0" },
-];
 
 const ITEMS_PER_PAGE = 10;
 
 const Attendance = () => {
-  const[data] = useState(initialData);
+const [data, setData] = useState([]);
+const [summary, setSummary] = useState({
+  total_employees: 0,
+  total_present: 0,
+  total_absent: 0,
+});
   const [searchQuery, setSearchQuery] = useState("");
   const [shiftFilter, setShiftFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  useEffect(() => {
+  const fetchAttendance = async () => {
+    try {
+      const res = await fetch(
+        "https://test.pearl-developer.com/Inbay_Innovations/public/api/attendance/dashboard",
+        {
+          headers: {
+            Authorization: "Bearer 200|I1ZZjquueG708yBOFYUUmUi2mYlIUNcrZDyJ208T81de1b2b",
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      const result = await res.json();
+
+      if (result.success) {
+        setSummary(result.summary);
+
+        const formatted = result.employees.map((emp) => ({
+          id: emp.id,
+          name: emp.name,
+          email: emp.email,
+          group: emp.group,
+          department: emp.department,
+          attendance: emp.status,
+          scheduledStart: emp.time_tracking.scheduled.split(" - ")[0],
+          scheduledEnd: emp.time_tracking.scheduled.split(" - ")[1],
+          actualStart: emp.time_tracking.actual.split(" - ")[0],
+          actualEnd: emp.time_tracking.actual.split(" - ")[1],
+          totalHours: emp.time_tracking.total_hours,
+          location: "Office",
+          endLocation: emp.travel_details.end_location,
+          remarks: emp.remarks.general,
+          distance: emp.travel_details.total_distance,
+          morningRemark: emp.remarks.morning,
+          eveningRemark: emp.remarks.evening,
+          morningOdo: emp.travel_details.odometer.split(" → ")[0],
+          eveningOdo: emp.travel_details.odometer.split(" → ")[1],
+          totalOdo: emp.travel_details.total_distance,
+          date: emp.date,
+          day: emp.day,
+        }));
+
+        setData(formatted);
+      }
+    } catch (error) {
+      console.error("API Error:", error);
+    }
+  };
+
+  fetchAttendance();
+}, []);
 
   // Extract unique shifts for the dropdown filter dynamically
   const uniqueShifts = useMemo(() => {
@@ -62,9 +101,9 @@ const Attendance = () => {
   },[data, searchQuery, shiftFilter]);
 
   // Calculate dynamic stats based on filtered data
-  const totalEmployees = filteredData.length;
-  const totalPresent = filteredData.filter((item) => item.attendance.toLowerCase() === "present").length;
-  const totalAbsent = filteredData.filter((item) => item.attendance.toLowerCase() === "absent").length;
+const totalEmployees = summary.total_employees;
+const totalPresent = summary.total_present;
+const totalAbsent = summary.total_absent;
 
   // Pagination Logic
   const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE) || 1;
@@ -111,7 +150,7 @@ const Attendance = () => {
       {/* TOP HEADER */}
       <div className="bg-white px-6 py-4 shadow-sm border-b border-gray-200 flex justify-between items-center z-10 flex-shrink-0">
         <div>
-          <h2 className="text-2xl font-extrabold text-gray-800">Attendance Log</h2>
+          <h2 className="text-2xl font-extrabold text-gray-800">Attendance Logs</h2>
           <p className="text-sm text-gray-500 mt-1">Manage and track employee attendance</p>
         </div>
 
@@ -293,7 +332,7 @@ const Attendance = () => {
                           </div>
                           <div className="flex justify-between items-center pt-2.5 border-t border-gray-100">
                             <span className="text-gray-500">Total Distance</span> 
-                            <span className="font-bold text-gray-800">{item.distance} KM</span>
+                            <span className="font-bold text-gray-800">{item.distance} </span>
                           </div>
                         </div>
                       </div>

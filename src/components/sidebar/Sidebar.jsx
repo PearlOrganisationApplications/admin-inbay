@@ -1,6 +1,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { menuConfig } from "./menuConfig";
+import logo from "../../assets/logo.bmp"; // path adjust kar lena
 
 export default function Sidebar() {
   const { pathname } = useLocation();
@@ -14,9 +15,13 @@ export default function Sidebar() {
     <aside className="fixed left-0 top-0 h-screen w-64 bg-gradient-to-b from-purple-700 to-purple-500 text-white shadow-xl">
       {/* HEADER */}
       <div className="h-20 flex flex-col items-center justify-center border-b border-white/20">
-        <h1 className="text-2xl font-bold">Admin</h1>
-        <span className="text-xs tracking-widest opacity-80">PANEL</span>
-      </div>
+  <img 
+    src={logo}
+    alt="logo"
+    className="h-12 w-auto object-contain"
+  />
+  <span className="text-xs tracking-widest opacity-80 mt-1">PANEL</span>
+</div>
 
       {/* MENU */}
       <nav className="mt-6 px-3 space-y-1">
