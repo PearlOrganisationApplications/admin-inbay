@@ -21,6 +21,11 @@ export const menuConfig = {
       path: "/user",
     },
     {
+      name: "Manager",
+      icon: FaUsers,
+      path: "/manager",
+    },
+    {
       name: "HRMS",
       icon: FaLayerGroup,
       children: [
