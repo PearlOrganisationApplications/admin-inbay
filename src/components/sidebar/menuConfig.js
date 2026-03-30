@@ -1,3 +1,4 @@
+import { User } from "lucide-react";
 import {
   FaHome,
   FaUsers,
@@ -6,6 +7,7 @@ import {
   FaClipboardCheck,
   FaFileAlt,
   FaUserTie,
+  FaMoneyBill,
   FaMapMarkerAlt,
 } from "react-icons/fa";
 
@@ -46,6 +48,16 @@ export const menuConfig = {
           icon: FaMapMarkerAlt, // 📍 visit icon
         },
       ],
+    },
+    {
+      name: "Expenses",
+      icon: FaMoneyBill,
+      path: "/expenses",
+    },
+    {
+      name: "Assign User",
+      icon: User,
+      path: "/assign-user",
     },
     {
       name: "Settings",
