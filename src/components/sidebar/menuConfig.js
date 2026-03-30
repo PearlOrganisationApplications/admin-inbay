@@ -5,6 +5,7 @@ import {
   FaCog,
   FaClipboardCheck,
   FaFileAlt,
+  FaUserTie,
   FaMapMarkerAlt,
 } from "react-icons/fa";
 
@@ -22,7 +23,7 @@ export const menuConfig = {
     },
     {
       name: "Manager",
-      icon: FaUsers,
+      icon: FaUserTie,
       path: "/manager",
     },
     {

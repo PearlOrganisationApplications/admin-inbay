@@ -10,10 +10,10 @@ import Manager from "../pages/admin/Manager";
 const AdminRoutes = () => (
   <Route path="/admin" element={<DashboardLayout />}>
     <Route path="User" element={<User />}>
-      <Route path="manager" element={<Manager/>}/>
-      <Route path="Attendance" element={<Attendance />}></Route>
-      <Route path="Dailyrepots" element={<Dailyreports />}></Route>
-      <Route path="Visit" element={<Visit />}></Route>
+    <Route path="Manager" element={<Manager/>}/>
+    <Route path="Attendance" element={<Attendance />}></Route>
+    <Route path="Dailyrepots" element={<Dailyreports />}></Route>
+    <Route path="Visit" element={<Visit />}></Route>
     </Route>
     <Route index element={<AdminDashboard />} />
   </Route>

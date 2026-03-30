@@ -30,6 +30,7 @@ const User = () => {
     name: "",
     email: "",
     password: "",
+    per_km_rate: "",
   });
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
 
@@ -83,7 +84,7 @@ const User = () => {
           `User ${newStatus === 1 ? "Activated" : "Deactivated"} successfully!`,
           "success",
         );
-        fetchUsers(); 
+        fetchUsers();
       } else {
         showToast("Failed to update user status", "error");
       }
@@ -114,7 +115,7 @@ const User = () => {
       if (response.ok) {
         showToast("User created successfully!", "success");
         setIsModalOpen(false);
-        setFormData({ name: "", email: "", password: "" });
+        setFormData({ name: "", email: "", password: "", per_km_rate: "" });
         fetchUsers();
       } else {
         showToast(result.message || "Failed to create user", "error");
@@ -142,7 +143,7 @@ const User = () => {
         user.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         user.email?.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesRole = roleFilter === "" || user.role === roleFilter;
-      
+
       // logic changed to use is_active (1 = Active, 0 = Inactive)
       const isActive = Number(user.is_active) === 1;
       const matchesStatus =
@@ -343,6 +344,7 @@ const User = () => {
                       <th className="p-4 font-semibold uppercase tracking-wider text-xs">
                         Role
                       </th>
+                      <th className="p-4 font-semibold uppercase tracking-wider text-xs">Rate (Per KM)</th>
                       <th className="p-4 font-semibold uppercase tracking-wider text-xs">
                         Status
                       </th>
@@ -369,8 +371,10 @@ const User = () => {
                         <td className="p-4">
                           <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-md text-xs font-medium border border-gray-200">
                             {user.role}
-                          </span>
+                          </span> 
+                          
                         </td>
+                        <td className="p-4 text-gray-500">₹{user.per_km_rate || "0.00"}</td>
                         <td className="p-4">
                           <span
                             className={`text-xs px-3 py-1 rounded-full font-bold border ${Number(user.is_active) === 1 ? "bg-green-50 text-green-700 border-green-200" : "bg-red-50 text-red-700 border-red-200"}`}
@@ -393,11 +397,10 @@ const User = () => {
                                 Number(user.is_active),
                               )
                             }
-                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm border flex items-center gap-1 ${
-                              Number(user.is_active) === 1
-                                ? "bg-red-50 text-red-600 border-red-200 hover:bg-red-600 hover:text-white"
-                                : "bg-green-50 text-green-600 border-green-200 hover:bg-green-600 hover:text-white"
-                            }`}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm border flex items-center gap-1 ${Number(user.is_active) === 1
+                              ? "bg-red-50 text-red-600 border-red-200 hover:bg-red-600 hover:text-white"
+                              : "bg-green-50 text-green-600 border-green-200 hover:bg-green-600 hover:text-white"
+                              }`}
                           >
                             {Number(user.is_active) === 1 ? (
                               <>
@@ -451,11 +454,10 @@ const User = () => {
                         onClick={() =>
                           toggleUserStatus(user.id, Number(user.is_active))
                         }
-                        className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg font-semibold transition-all duration-300 shadow-sm text-sm border ${
-                          Number(user.is_active) === 1
-                            ? "bg-red-50 text-red-600 border-red-200 hover:bg-red-600 hover:text-white"
-                            : "bg-green-50 text-green-600 border-green-200 hover:bg-green-600 hover:text-white"
-                        }`}
+                        className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg font-semibold transition-all duration-300 shadow-sm text-sm border ${Number(user.is_active) === 1
+                          ? "bg-red-50 text-red-600 border-red-200 hover:bg-red-600 hover:text-white"
+                          : "bg-green-50 text-green-600 border-green-200 hover:bg-green-600 hover:text-white"
+                          }`}
                       >
                         {Number(user.is_active) === 1 ? "Inactive" : "Active"}
                       </button>
@@ -574,6 +576,22 @@ const User = () => {
                   value={formData.password}
                   onChange={(e) =>
                     setFormData({ ...formData, password: e.target.value })
+                  }
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">
+                  Per KM Rate
+                </label>
+                <input
+                  required
+                  type="number"
+                  step="0.01"
+                  placeholder="e.g. 12"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none transition-all"
+                  value={formData.per_km_rate}
+                  onChange={(e) =>
+                    setFormData({ ...formData, per_km_rate: e.target.value })
                   }
                 />
               </div>

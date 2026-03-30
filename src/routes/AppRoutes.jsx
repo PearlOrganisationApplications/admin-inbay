@@ -12,6 +12,7 @@ import Attendance from "../pages/Hrms/Attendance";
 import Dailyreports from "../pages/Hrms/Dailyreports";
 import Visit from "../pages/Hrms/Visit";
 import Setting from "../pages/Setting/Setting";
+import Manager from "../pages/admin/Manager";
 
 const AppRoutes = () => {
   return (
@@ -23,6 +24,7 @@ const AppRoutes = () => {
       <Route element={<DashboardLayout />}>
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="User" element={<User />} />
+        <Route path="Manager" element={<Manager />} />
         <Route path="Attendance" element={<Attendance />} />
         <Route path="Dailyreports" element={<Dailyreports />} />
         <Route path="Visit" element={<Visit />} />
