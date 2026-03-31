@@ -33,10 +33,40 @@ const Manager = () => {
     password: "",
   });
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
+  const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [selectedManagerData, setSelectedManagerData] = useState(null);
 
   useEffect(() => {
     fetchManagers();
   }, []);
+
+  const handleViewManager = async (managerId) => {
+    try {
+      const token = localStorage.getItem("token");
+
+      const response = await fetch(
+        `https://test.pearl-developer.com/Inbay_Innovations/public/api/admin/manager/${managerId}/users`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      const result = await response.json();
+
+      if (response.ok) {
+        setSelectedManagerData(result.data);
+        setViewModalOpen(true);
+      } else {
+        showToast("Failed to fetch manager details", "error");
+      }
+    } catch (error) {
+      showToast("Error fetching manager details", "error");
+    }
+  };
 
   const fetchManagers = async () => {
     try {
@@ -52,7 +82,6 @@ const Manager = () => {
         },
       );
       const data = await response.json();
-      // Assuming same data structure as User API
       setManagers(Array.isArray(data) ? data : data?.data || []);
     } catch (error) {
       console.error("Manager API error:", error);
@@ -193,11 +222,14 @@ const Manager = () => {
     a.click();
   };
 
+  // Helper to get the single user to display
+  const displayUser = selectedManagerData?.assigned_users?.[0];
+
   return (
     <div className="bg-gray-50 h-screen flex flex-col font-sans relative">
       {toast.show && (
         <div
-          className={`fixed top-5 right-5 z-[100] px-6 py-3 rounded-lg shadow-lg text-white transition-all transform animate-bounce ${toast.type === "success" ? "bg-green-600" : "bg-red-600"}`}
+          className={`fixed top-5 right-5 z-[110] px-6 py-3 rounded-lg shadow-lg text-white transition-all transform animate-bounce ${toast.type === "success" ? "bg-green-600" : "bg-red-600"}`}
         >
           {toast.message}
         </div>
@@ -267,7 +299,7 @@ const Manager = () => {
         </div>
       </div>
 
-      {/* Main Content / Stats Area */}
+      {/* Main Content Area */}
       <div className="flex-1 overflow-y-auto p-4 md:p-6">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -345,7 +377,10 @@ const Manager = () => {
                           </span>
                         </td>
                         <td className="p-4 text-center flex items-center justify-center gap-2">
-                          <button className="p-2 text-blue-600 bg-blue-50 rounded-full hover:bg-blue-600 hover:text-white transition-all shadow-sm">
+                          <button
+                            onClick={() => handleViewManager(m.id)}
+                            className="p-2 text-blue-600 bg-blue-50 rounded-full hover:bg-blue-600 hover:text-white transition-all shadow-sm"
+                          >
                             <Eye size={18} />
                           </button>
                           <button
@@ -386,7 +421,10 @@ const Manager = () => {
                       </span>
                     </div>
                     <div className="pt-1 pl-2 flex gap-2">
-                      <button className="flex-1 flex items-center justify-center gap-2 text-blue-600 bg-blue-50 py-2 rounded-lg font-semibold text-sm transition-all">
+                      <button
+                        onClick={() => handleViewManager(m.id)}
+                        className="flex-1 flex items-center justify-center gap-2 text-blue-600 bg-blue-50 py-2 rounded-lg font-semibold text-sm transition-all"
+                      >
                         <Eye size={18} /> View
                       </button>
                       <button
@@ -395,7 +433,7 @@ const Manager = () => {
                           Number(m.is_active) === 1 ? "bg-red-50 text-red-600 border-red-200" : "bg-green-50 text-green-600 border-green-200"
                         }`}
                       >
-                        {Number(m.is_active) === 1 ? "Inactive" : "Active"}
+                        {Number(m.is_active) === 1 ? "Deactivate" : "Activate"}
                       </button>
                     </div>
                   </div>
@@ -406,25 +444,109 @@ const Manager = () => {
         </div>
       </div>
 
-      {/* Pagination Section */}
-      {totalPages > 1 && (
-        <div className="bg-white border-t border-gray-200 px-6 py-4 flex items-center justify-between flex-shrink-0 z-10">
-          <p className="text-sm text-gray-500 hidden sm:block">
-            Showing <span className="font-medium text-gray-900">{(currentPage - 1) * ITEMS_PER_PAGE + 1}</span> to <span className="font-medium text-gray-900">{Math.min(currentPage * ITEMS_PER_PAGE, filteredManagers.length)}</span> of <span className="font-medium text-gray-900">{filteredManagers.length}</span> results
-          </p>
-          <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
-            <button onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1} className="p-2 rounded-lg border border-gray-300 disabled:opacity-50 hover:bg-gray-50"><ChevronLeft size={18} /></button>
-            <div className="flex gap-1">
-              {[...Array(totalPages)].map((_, i) => (
-                <button key={i} onClick={() => setCurrentPage(i + 1)} className={`w-9 h-9 rounded-lg text-sm font-medium ${currentPage === i + 1 ? "bg-indigo-600 text-white" : "text-gray-600 hover:bg-gray-100 hidden sm:inline-block"}`}>{i + 1}</button>
-              ))}
+      {/* NEW UPDATED View Manager Modal - MATCHING SCREENSHOT */}
+      {viewModalOpen && displayUser && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-2xl overflow-hidden shadow-2xl bg-white">
+            
+            {/* Header Section */}
+            <div className="p-5 border-b flex justify-between items-center bg-[#F9F5FF]">
+              <h2 className="text-xl font-bold text-[#101828]">User Details</h2>
+              <button 
+                onClick={() => setViewModalOpen(false)} 
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X size={24} />
+              </button>
             </div>
-            <button onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages} className="p-2 rounded-lg border border-gray-300 disabled:opacity-50 hover:bg-gray-50"><ChevronRight size={18} /></button>
+
+            <div className="p-6">
+              {/* Profile Row */}
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-20 h-20 rounded-full border-2 border-gray-200 overflow-hidden">
+                  <img
+                    src={`https://test.pearl-developer.com/Inbay_Innovations/public/${displayUser.profile_image}`}
+                    alt="profile"
+                    className="w-full h-full object-cover"
+                    onError={(e) => { e.target.src = "https://via.placeholder.com/150"; }}
+                  />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900 uppercase tracking-tight">
+                    {displayUser.name}
+                  </h3>
+                  <p className="text-sm text-gray-500 font-medium">
+                    {displayUser.email}
+                  </p>
+                </div>
+              </div>
+
+              {/* Divider */}
+              <hr className="border-gray-200 mb-6" />
+
+              {/* Details Grid */}
+              <div className="grid grid-cols-2 gap-x-8 gap-y-6 mb-8">
+                <div>
+                  <p className="text-[#667085] text-sm mb-1">User ID</p>
+                  <p className="font-bold text-[#101828] text-lg">{displayUser.id}</p>
+                </div>
+                <div>
+                  <p className="text-[#667085] text-sm mb-1">Manager ID</p>
+                  <p className="font-bold text-[#101828] text-lg">{selectedManagerData.manager_id}</p>
+                </div>
+                <div>
+                  <p className="text-[#667085] text-sm mb-1">Role</p>
+                  <p className="font-bold text-[#101828] text-lg">{displayUser.role}</p>
+                </div>
+                <div>
+                  <p className="text-[#667085] text-sm mb-1">Status</p>
+                  <span className={`inline-block px-3 py-1 rounded-full text-sm font-bold ${
+                    displayUser.is_active 
+                    ? "bg-[#ECFDF3] text-[#027A48]" 
+                    : "bg-[#FEF3F2] text-[#B42318]"
+                  }`}>
+                    {displayUser.is_active ? "Active" : "Inactive"}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-[#667085] text-sm mb-1">Rate</p>
+                  <p className="font-bold text-[#101828] text-lg">₹{displayUser.per_km_rate}</p>
+                </div>
+                <div>
+                  <p className="text-[#667085] text-sm mb-1">Designation</p>
+                  <p className="font-bold text-[#101828] text-lg">{displayUser.designation || "N/A"}</p>
+                </div>
+                <div>
+                  <p className="text-[#667085] text-sm mb-1">Team</p>
+                  <p className="font-bold text-[#101828] text-lg">{displayUser.team || "N/A"}</p>
+                </div>
+                <div>
+                  <p className="text-[#667085] text-sm mb-1">State</p>
+                  <p className="font-bold text-[#101828] text-lg">{displayUser.state || "N/A"}</p>
+                </div>
+                <div>
+                  <p className="text-[#667085] text-sm mb-1">Created At</p>
+                  <p className="font-bold text-[#475467] text-sm">{displayUser.created_at}</p>
+                </div>
+                <div>
+                  <p className="text-[#667085] text-sm mb-1">Updated At</p>
+                  <p className="font-bold text-[#475467] text-sm">{displayUser.updated_at}</p>
+                </div>
+              </div>
+
+              {/* Close Button */}
+              <button
+                onClick={() => setViewModalOpen(false)}
+                className="w-full py-4 rounded-xl bg-[#9333ea] text-white font-bold text-lg hover:bg-[#7e22ce] transition-colors shadow-lg"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Modal Section */}
+      {/* Create Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all">

@@ -33,6 +33,8 @@ const User = () => {
     per_km_rate: "",
   });
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -55,6 +57,34 @@ const User = () => {
       setUsers(Array.isArray(data) ? data : data?.data || []);
     } catch (error) {
       console.error("User API error:", error);
+    }
+  };
+
+  const fetchSingleUser = async (userId) => {
+    try {
+      const token = localStorage.getItem("token");
+
+      const response = await fetch(
+        `https://test.pearl-developer.com/Inbay_Innovations/public/api/admin/get/user/${userId}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        },
+      );
+
+      const result = await response.json();
+
+      if (response.ok && result.status) {
+        setSelectedUser(result.data);
+        setIsViewModalOpen(true);
+      } else {
+        alert("User fetch failed");
+      }
+    } catch (error) {
+      alert("Error");
     }
   };
 
@@ -154,8 +184,12 @@ const User = () => {
   }, [users, searchQuery, roleFilter, statusFilter]);
 
   const totalUsers = filteredUsers.length;
-  const activeUsers = filteredUsers.filter((u) => Number(u.is_active) === 1).length;
-  const inactiveUsers = filteredUsers.filter((u) => Number(u.is_active) !== 1).length;
+  const activeUsers = filteredUsers.filter(
+    (u) => Number(u.is_active) === 1,
+  ).length;
+  const inactiveUsers = filteredUsers.filter(
+    (u) => Number(u.is_active) !== 1,
+  ).length;
 
   const totalPages = Math.ceil(filteredUsers.length / ITEMS_PER_PAGE) || 1;
   const paginatedUsers = filteredUsers.slice(
@@ -344,7 +378,9 @@ const User = () => {
                       <th className="p-4 font-semibold uppercase tracking-wider text-xs">
                         Role
                       </th>
-                      <th className="p-4 font-semibold uppercase tracking-wider text-xs">Rate (Per KM)</th>
+                      <th className="p-4 font-semibold uppercase tracking-wider text-xs">
+                        Rate (Per KM)
+                      </th>
                       <th className="p-4 font-semibold uppercase tracking-wider text-xs">
                         Status
                       </th>
@@ -371,19 +407,23 @@ const User = () => {
                         <td className="p-4">
                           <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-md text-xs font-medium border border-gray-200">
                             {user.role}
-                          </span> 
-                          
+                          </span>
                         </td>
-                        <td className="p-4 text-gray-500">₹{user.per_km_rate || "0.00"}</td>
+                        <td className="p-4 text-gray-500">
+                          ₹{user.per_km_rate || "0.00"}
+                        </td>
                         <td className="p-4">
                           <span
                             className={`text-xs px-3 py-1 rounded-full font-bold border ${Number(user.is_active) === 1 ? "bg-green-50 text-green-700 border-green-200" : "bg-red-50 text-red-700 border-red-200"}`}
                           >
-                            {Number(user.is_active) === 1 ? "Active" : "Inactive"}
+                            {Number(user.is_active) === 1
+                              ? "Active"
+                              : "Inactive"}
                           </span>
                         </td>
                         <td className="p-4 text-center flex items-center justify-center gap-2">
                           <button
+                            onClick={() => fetchSingleUser(user.id)}
                             className="p-2 inline-flex items-center justify-center text-blue-600 bg-blue-50 rounded-full hover:bg-blue-600 hover:text-white transition-all duration-300 shadow-sm"
                             title="View User"
                           >
@@ -392,15 +432,13 @@ const User = () => {
 
                           <button
                             onClick={() =>
-                              toggleUserStatus(
-                                user.id,
-                                Number(user.is_active),
-                              )
+                              toggleUserStatus(user.id, Number(user.is_active))
                             }
-                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm border flex items-center gap-1 ${Number(user.is_active) === 1
-                              ? "bg-red-50 text-red-600 border-red-200 hover:bg-red-600 hover:text-white"
-                              : "bg-green-50 text-green-600 border-green-200 hover:bg-green-600 hover:text-white"
-                              }`}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm border flex items-center gap-1 ${
+                              Number(user.is_active) === 1
+                                ? "bg-red-50 text-red-600 border-red-200 hover:bg-red-600 hover:text-white"
+                                : "bg-green-50 text-green-600 border-green-200 hover:bg-green-600 hover:text-white"
+                            }`}
                           >
                             {Number(user.is_active) === 1 ? (
                               <>
@@ -447,17 +485,21 @@ const User = () => {
                       </span>
                     </div>
                     <div className="pt-1 pl-2 flex gap-2">
-                      <button className="flex-1 flex items-center justify-center gap-2 text-blue-600 bg-blue-50 hover:bg-blue-600 hover:text-white py-2 rounded-lg font-semibold transition-all duration-300 shadow-sm text-sm">
+                      <button
+                        onClick={() => fetchSingleUser(user.id)}
+                        className="flex-1 flex items-center justify-center gap-2 text-blue-600 bg-blue-50 hover:bg-blue-600 hover:text-white py-2 rounded-lg font-semibold transition-all duration-300 shadow-sm text-sm"
+                      >
                         <Eye size={18} /> View
                       </button>
                       <button
                         onClick={() =>
                           toggleUserStatus(user.id, Number(user.is_active))
                         }
-                        className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg font-semibold transition-all duration-300 shadow-sm text-sm border ${Number(user.is_active) === 1
-                          ? "bg-red-50 text-red-600 border-red-200 hover:bg-red-600 hover:text-white"
-                          : "bg-green-50 text-green-600 border-green-200 hover:bg-green-600 hover:text-white"
-                          }`}
+                        className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg font-semibold transition-all duration-300 shadow-sm text-sm border ${
+                          Number(user.is_active) === 1
+                            ? "bg-red-50 text-red-600 border-red-200 hover:bg-red-600 hover:text-white"
+                            : "bg-green-50 text-green-600 border-green-200 hover:bg-green-600 hover:text-white"
+                        }`}
                       >
                         {Number(user.is_active) === 1 ? "Inactive" : "Active"}
                       </button>
@@ -518,7 +560,126 @@ const User = () => {
           </div>
         </div>
       )}
+      {isViewModalOpen && selectedUser && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-fadeIn">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b bg-purple-50">
+              <h2 className="text-lg font-bold text-gray-800">User Details</h2>
+              <button
+                onClick={() => setIsViewModalOpen(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X size={20} />
+              </button>
+            </div>
 
+            {/* Body */}
+            <div className="p-6 space-y-4 text-sm">
+              {/* Profile */}
+              <div className="flex items-center gap-4">
+                <img
+                  src={selectedUser.profile_image}
+                  alt="profile"
+                  className="w-14 h-14 rounded-full border object-cover"
+                />
+                <div>
+                  <p className="font-bold text-gray-800">{selectedUser.name}</p>
+                  <p className="text-gray-500 text-xs">{selectedUser.email}</p>
+                </div>
+              </div>
+
+          <div className="grid grid-cols-2 gap-4 pt-4 border-t">
+  <div>
+    <p className="text-gray-500 text-xs">User ID</p>
+    <p className="font-semibold text-gray-800">
+      {selectedUser.id}
+    </p>
+  </div>
+
+  <div>
+    <p className="text-gray-500 text-xs">Manager ID</p>
+    <p className="font-semibold text-gray-800">
+      {selectedUser.manager_id || "N/A"}
+    </p>
+  </div>
+
+  <div>
+    <p className="text-gray-500 text-xs">Role</p>
+    <p className="font-semibold text-gray-800">
+      {selectedUser.role}
+    </p>
+  </div>
+
+  <div>
+    <p className="text-gray-500 text-xs">Status</p>
+    <span
+      className={`px-2 py-1 rounded-full text-xs font-bold ${
+        selectedUser.is_active === 1
+          ? "bg-green-100 text-green-700"
+          : "bg-red-100 text-red-700"
+      }`}
+    >
+      {selectedUser.is_active === 1 ? "Active" : "Inactive"}
+    </span>
+  </div>
+
+  <div>
+    <p className="text-gray-500 text-xs">Rate</p>
+    <p className="font-semibold text-gray-800">
+      ₹{selectedUser.per_km_rate}
+    </p>
+  </div>
+
+  <div>
+    <p className="text-gray-500 text-xs">Designation</p>
+    <p className="font-semibold text-gray-800">
+      {selectedUser.designation || "N/A"}
+    </p>
+  </div>
+
+  <div>
+    <p className="text-gray-500 text-xs">Team</p>
+    <p className="font-semibold text-gray-800">
+      {selectedUser.team || "N/A"}
+    </p>
+  </div>
+
+  <div>
+    <p className="text-gray-500 text-xs">State</p>
+    <p className="font-semibold text-gray-800">
+      {selectedUser.state || "N/A"}
+    </p>
+  </div>
+
+  <div>
+    <p className="text-gray-500 text-xs">Created At</p>
+    <p className="font-semibold text-gray-800">
+      {new Date(selectedUser.created_at).toLocaleString()}
+    </p>
+  </div>
+
+  <div>
+    <p className="text-gray-500 text-xs">Updated At</p>
+    <p className="font-semibold text-gray-800">
+      {new Date(selectedUser.updated_at).toLocaleString()}
+    </p>
+  </div>
+</div>
+</div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 border-t">
+              <button
+                onClick={() => setIsViewModalOpen(false)}
+                className="w-full bg-purple-600 text-white py-2 rounded-lg font-medium hover:bg-purple-700 transition"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all">
