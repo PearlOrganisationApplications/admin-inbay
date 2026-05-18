@@ -1,4 +1,4 @@
-import { User } from "lucide-react";
+import { PlusCircle, User } from "lucide-react";
 import {
   FaHome,
   FaUsers,
@@ -27,6 +27,11 @@ export const menuConfig = {
       name: "Manager",
       icon: FaUserTie,
       path: "/manager",
+    },
+    {
+      name: "Add Client Type",
+      icon: PlusCircle,
+      path: "/add-client-type",
     },
     {
       name: "HRMS",

@@ -15,6 +15,7 @@ import Setting from "../pages/Setting/Setting";
 import Manager from "../pages/admin/Manager";
 import AssignUser from "../pages/assignuser/AssignUser";
 import Expenses from "../pages/expenses/Expenses";
+import AddClientType from "../pages/add-client-type/AddClientType";
 
 const AppRoutes = () => {
   return (
@@ -26,7 +27,8 @@ const AppRoutes = () => {
       <Route element={<DashboardLayout />}>
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="User" element={<User />} />
-        <Route path="Manager" element={<Manager />} />]
+        <Route path="Manager" element={<Manager />} />
+        <Route path="add-client-type" element={<AddClientType />} />
         <Route path="assign-user" element={<AssignUser />} />
         <Route path="expenses" element={<Expenses />} />
         <Route path="Attendance" element={<Attendance />} />
