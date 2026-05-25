@@ -16,6 +16,7 @@ import Manager from "../pages/admin/Manager";
 import AssignUser from "../pages/assignuser/AssignUser";
 import Expenses from "../pages/expenses/Expenses";
 import AddClientType from "../pages/add-client-type/AddClientType";
+import ImageViewer from "../components/ImageViewer";
 
 const AppRoutes = () => {
   return (
@@ -35,6 +36,8 @@ const AppRoutes = () => {
         <Route path="Dailyreports" element={<Dailyreports />} />
         <Route path="Visit" element={<Visit />} />
         <Route path="settings" element={<Setting />} />
+
+        <Route path="/image-viewer" element={<ImageViewer />} />
       </Route>
 
       <Route path="*" element={<NotFound />} />

@@ -1,19 +1,20 @@
 import React, { useState, useEffect } from "react";
-import { 
-  LayoutDashboard, 
-  Wallet, 
-  CheckCircle, 
-  XCircle, 
-  Clock, 
-  MapPin, 
-  Navigation, 
-  Eye, 
-  Car, 
-  Bike, 
+import {
+  LayoutDashboard,
+  Wallet,
+  CheckCircle,
+  XCircle,
+  Clock,
+  MapPin,
+  Navigation,
+  Eye,
+  Car,
+  Bike,
   FileText,
   Calendar,
   ChevronRight,
-  X
+  X,
+  Download
 } from "lucide-react";
 
 const Expenses = () => {
@@ -23,38 +24,96 @@ const Expenses = () => {
   const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [month, setMonth] = useState(3)
+  const [year, setYear] = useState(2026)
+  const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false);
+  const [employeeSearch, setEmployeeSearch] = useState("");
+  const [selectedEmployees, setSelectedEmployees] = useState([]);
+  const [startDate, setStartDate] = useState("2026-05-01");
+  const [endDate, setEndDate] = useState("2026-05-22");
+  const [filterMode, setFilterMode] = useState("month");
 
   const TOKEN = "293|0c9Zqwm4c3GUEolDbL4xUDIAmxOwIS5oMXJj27Ti5f332c16";
   const BASE_URL = "https://test.pearl-developer.com/Inbay_Innovations/public/api/admin/expenses";
+  useEffect(() => {
+    fetchInitialData(); // expenses list
+  }, []);
 
   useEffect(() => {
-    fetchInitialData();
-  }, []);
+    fetchReport();
+  }, [month, year, startDate, endDate, filterMode]);
+
+
 
   const fetchInitialData = async () => {
     setLoading(true);
+
     try {
-      // 1. Fetch Expenses List
+      // 1. Expenses List
       const listRes = await fetch(BASE_URL, {
         headers: { Authorization: `Bearer ${TOKEN}` },
       });
+
       const listData = await listRes.json();
 
-      // 2. Fetch Summary Report (Month 3, Year 2026 as per your link)
-      const reportRes = await fetch(`${BASE_URL}/report?month=3&year=2026`, {
-        headers: { Authorization: `Bearer ${TOKEN}` },
-      });
-      const reportData = await reportRes.json();
+      if (listData.success) {
+        setExpenses(listData.data?.data || []);
+      }
 
-      if (listData.success) setExpenses(listData.data.data);
-      if (reportData.success) setReport(reportData);
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
       setLoading(false);
     }
   };
+  const fetchReport = async () => {
+    setLoading(true);
 
+    try {
+      let url = "";
+
+      // 📆 DATE RANGE FILTER (priority high)
+      if (filterMode === "date" && startDate && endDate) {
+        url = `${BASE_URL}/report?start_date=${startDate}&end_date=${endDate}`;
+      }
+      // 📅 MONTH/YEAR FILTER (default)
+      else {
+        url = `${BASE_URL}/report?month=${month}&year=${year}`;
+      }
+
+      const res = await fetch(url, {
+        headers: { Authorization: `Bearer ${TOKEN}` },
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        setReport(data);
+      }
+
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+  const handleEmployeeSelect = (name) => {
+    setSelectedEmployees((prev) =>
+      prev.includes(name)
+        ? prev.filter((n) => n !== name)
+        : [...prev, name]
+    );
+  };
+
+  const handleSelectAllEmployees = () => {
+    if (selectedEmployees.length === uniqueEmployees.length) {
+      setSelectedEmployees([]);
+    } else {
+      setSelectedEmployees(uniqueEmployees);
+    }
+  };
   const fetchExpenseDetail = async (id) => {
     setDetailLoading(true);
     setIsModalOpen(true);
@@ -80,6 +139,222 @@ const Expenses = () => {
     }
   };
 
+  const uniqueEmployees = React.useMemo(() => {
+    const map = new Map();
+    const list = [];
+
+    expenses.forEach((item) => {
+      const name = item?.user?.name;
+      if (name && !map.has(name)) {
+        map.set(name, true);
+        list.push(name);
+      }
+    });
+
+    return list;
+  }, [expenses]);
+
+
+  const dropdownRef = React.useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setShowEmployeeDropdown(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const filteredEmployeeOptions = React.useMemo(() => {
+    return uniqueEmployees.filter((name) =>
+      name.toLowerCase().includes(employeeSearch.toLowerCase())
+    );
+  }, [uniqueEmployees, employeeSearch]);
+
+  const travelBreakdown = React.useMemo(() => {
+  if (!report?.employees) return [];
+
+  const breakdownMap = {};
+
+  report.employees.forEach((item) => {
+    const mode =
+      item?.expense_details?.travel_mode || "manual";
+
+    const amount =
+      Number(item?.expense_details?.total_expense || 0);
+
+    if (!breakdownMap[mode]) {
+      breakdownMap[mode] = {
+        mode,
+        count: 0,
+        total_amount: 0,
+      };
+    }
+
+    breakdownMap[mode].count += 1;
+    breakdownMap[mode].total_amount += amount;
+  });
+
+  return Object.values(breakdownMap);
+}, [report]);
+
+
+
+
+  // EXPORT CSV
+  const handleExport = () => {
+
+    if (!report?.employees?.length) {
+      return alert("No expense data available!");
+    }
+
+    const formatHeader = (key) => {
+      return key
+        .replace(/_/g, " ")
+        .replace(/([A-Z])/g, " $1")
+        .replace(/\s+/g, " ")
+        .trim()
+        .replace(/\b\w/g, (c) => c.toUpperCase());
+    };
+
+    const formattedData = report.employees.map((item, index) => {
+
+      const details = item?.expense_details || {};
+
+      // ALL FILE LINKS
+      const attachmentLinks =
+        item?.attachments?.length > 0
+          ? item.attachments.join(" | ")
+          : "No Files";
+
+      // PDF LINKS
+      const pdfLinks =
+        item?.attachments
+          ?.filter((file) =>
+            file?.toLowerCase()?.endsWith(".pdf")
+          )
+          ?.join(" | ") || "No PDF";
+
+      // DOC LINKS
+      const docLinks =
+        item?.attachments
+          ?.filter((file) => {
+            const lower = file?.toLowerCase() || "";
+
+            return (
+              lower.endsWith(".doc") ||
+              lower.endsWith(".docx")
+            );
+          })
+          ?.join(" | ") || "No Docs";
+
+      return {
+        sr_no: index + 1,
+
+        expense_id: item?.expense_id || "N/A",
+
+        employee_name: item?.user?.name || "N/A",
+
+        email: item?.user?.email || "N/A",
+
+        designation: item?.user?.designation || "N/A",
+
+        team: item?.user?.team || "N/A",
+
+        expense_type: details?.type || "N/A",
+
+        travel_mode: details?.travel_mode || "Manual",
+
+        expense_date: details?.expense_date || "N/A",
+
+        start_date: details?.start_date || "N/A",
+
+        end_date: details?.end_date || "N/A",
+
+        departure_location:
+          details?.departure_location || "N/A",
+
+        arrival_location:
+          Array.isArray(details?.arrival_location)
+            ? details.arrival_location.join(" | ")
+            : "N/A",
+
+        mobile_bill: details?.mobile_bill || 0,
+
+        toll: details?.toll || 0,
+
+        courier: details?.courier || 0,
+
+        vehicle: details?.vehicle || 0,
+
+        hotel: details?.hotel || 0,
+
+        others: details?.others || 0,
+
+        fuel: details?.fuel || 0,
+
+        da: details?.da || 0,
+
+        total_km: details?.total_km || 0,
+
+        total_expense: details?.total_expense || 0,
+
+        remarks: details?.remarks || "N/A",
+
+        pdf_links: pdfLinks,
+
+        doc_links: docLinks,
+
+        all_attachments: attachmentLinks,
+
+        created_at: item?.created_at || "N/A",
+      };
+    });
+    if (!formattedData.length) {
+      return alert("No formatted data!");
+    }
+
+    const rawKeys = Object.keys(formattedData[0]);
+
+    const headers = rawKeys.map(formatHeader).join(",");
+
+    const rows = formattedData
+      .map((obj) =>
+        Object.values(obj)
+          .map((val) => `"${String(val ?? "").replace(/"/g, '""')}"`)
+          .join(",")
+      )
+      .join("\n");
+
+    const csv = headers + "\n" + rows;
+
+    const blob = new Blob([csv], {
+      type: "text/csv;charset=utf-8;",
+    });
+
+    const url = window.URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+
+    a.href = url;
+
+    a.download =
+      filterMode === "date"
+        ? `expense_report_${startDate}_to_${endDate}.csv`
+        : `expense_report_${month}_${year}.csv`;
+
+    document.body.appendChild(a);
+
+    a.click();
+
+    document.body.removeChild(a);
+
+    window.URL.revokeObjectURL(url);
+  };
+
   if (loading) return (
     <div className="flex h-screen items-center justify-center bg-gray-50">
       <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-600"></div>
@@ -89,26 +364,196 @@ const Expenses = () => {
   return (
     <div className="p-4 md:p-8 bg-gray-50 min-h-screen font-sans pb-20">
       {/* HEADER SECTION */}
-      <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="mb-8 flex flex-col lg:flex-row lg:items-start justify-between gap-6">
+
+        {/* LEFT TITLE */}
         <div>
           <h1 className="text-3xl font-black text-gray-900 flex items-center gap-3">
             <Wallet className="text-purple-600 w-8 h-8" />
             Expense Management
           </h1>
-          <p className="text-gray-500 font-medium mt-1">Track and manage employee reimbursement claims</p>
+          <p className="text-gray-500 font-medium mt-1">
+            Track and manage employee reimbursement claims
+          </p>
         </div>
-        <div className="flex items-center gap-3 bg-white p-2 rounded-xl shadow-sm border border-gray-100">
-           <Calendar className="text-purple-600 w-5 h-5 ml-2" />
-           <span className="font-bold text-gray-700 pr-4">{report?.month || "March 2026"}</span>
-        </div>
-      </div>
 
+        {/* CENTER CONTROLS */}
+        <div className="flex flex-col gap-4 w-full lg:w-auto">
+
+          {/* FILTER TOGGLE */}
+          <div className="flex gap-2 bg-gray-100 p-1 rounded-xl w-fit">
+            <button
+              onClick={() => setFilterMode("month")}
+              className={`px-4 py-2 rounded-lg text-sm font-bold transition ${filterMode === "month"
+                ? "bg-purple-600 text-white"
+                : "text-gray-600"
+                }`}
+            >
+              Month
+            </button>
+
+            <button
+              onClick={() => setFilterMode("date")}
+              className={`px-4 py-2 rounded-lg text-sm font-bold transition ${filterMode === "date"
+                ? "bg-purple-600 text-white"
+                : "text-gray-600"
+                }`}
+            >
+              Date Range
+            </button>
+          </div>
+
+          {/* MONTH FILTER */}
+          {filterMode === "month" && (
+            <div className="flex items-center gap-3 bg-white p-2 rounded-xl shadow-sm border">
+              <Calendar className="text-purple-600 w-5 h-5 ml-2" />
+
+              <select
+                value={month}
+                onChange={(e) => setMonth(Number(e.target.value))}
+                className="font-bold text-gray-700 bg-transparent outline-none cursor-pointer"
+              >
+                <option value={1}>January</option>
+                <option value={2}>February</option>
+                <option value={3}>March</option>
+                <option value={4}>April</option>
+                <option value={5}>May</option>
+                <option value={6}>June</option>
+                <option value={7}>July</option>
+                <option value={8}>August</option>
+                <option value={9}>September</option>
+                <option value={10}>October</option>
+                <option value={11}>November</option>
+                <option value={12}>December</option>
+              </select>
+
+              <select
+                value={year}
+                onChange={(e) => setYear(Number(e.target.value))}
+                className="font-bold text-gray-700 bg-transparent outline-none cursor-pointer"
+              >
+                <option value={2024}>2024</option>
+                <option value={2025}>2025</option>
+                <option value={2026}>2026</option>
+                <option value={2027}>2027</option>
+              </select>
+            </div>
+          )}
+
+          {/* DATE RANGE FILTER */}
+          {filterMode === "date" && (
+            <div className="flex items-center gap-3 bg-white p-2 rounded-xl shadow-sm border">
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="border p-2 rounded-lg text-sm"
+              />
+
+              <span className="text-gray-400 text-sm">to</span>
+
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="border p-2 rounded-lg text-sm"
+              />
+            </div>
+          )}
+        </div>
+
+        {/* RIGHT SIDE */}
+        <div className="flex flex-col gap-4 items-end">
+
+          {/* EMPLOYEE DROPDOWN */}
+          <div ref={dropdownRef} className="relative w-full md:w-80">
+            <div
+              onClick={() => setShowEmployeeDropdown(!showEmployeeDropdown)}
+              className="w-full min-h-[46px] bg-white border rounded-xl px-3 py-2 flex items-center justify-between cursor-pointer shadow-sm"
+            >
+              {selectedEmployees.length === 0 ? (
+                <span className="text-sm text-gray-400">
+                  Search & Select Employees
+                </span>
+              ) : (
+                <span className="text-sm font-semibold text-purple-600">
+                  {selectedEmployees.length} Selected
+                </span>
+              )}
+            </div>
+
+            {showEmployeeDropdown && (
+              <div className="absolute top-full mt-2 left-0 w-full bg-white border rounded-2xl shadow-xl z-50 p-3">
+                <input
+                  type="text"
+                  value={employeeSearch}
+                  onChange={(e) => setEmployeeSearch(e.target.value)}
+                  placeholder="Search employee..."
+                  className="w-full border p-2 rounded-lg text-sm mb-2 outline-none focus:ring-2 focus:ring-purple-500"
+                />
+
+                <div className="max-h-60 overflow-y-auto space-y-1">
+                  {filteredEmployeeOptions.map((name, i) => (
+                    <label key={i} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded-lg">
+                      <input
+                        type="checkbox"
+                        checked={selectedEmployees.includes(name)}
+                        onChange={() =>
+                          setSelectedEmployees((prev) =>
+                            prev.includes(name)
+                              ? prev.filter((n) => n !== name)
+                              : [...prev, name]
+                          )
+                        }
+                      />
+                      <span className="text-sm">{name}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* EXPORT BUTTON */}
+          <button
+            onClick={handleExport}
+            className="bg-purple-600 text-white px-5 py-3 rounded-xl text-sm font-bold hover:bg-purple-700 transition-all shadow-md flex items-center gap-2"
+          >
+            <Download size={18} />
+            Export CSV
+          </button>
+        </div>
+
+      </div>
       {/* STATS CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <StatsCard title="Total Amount" value={`₹${report?.amount_summary.total_amount}`} icon={<LayoutDashboard />} color="bg-purple-600" />
-        <StatsCard title="Approved" value={`₹${report?.amount_summary.approved_amount}`} icon={<CheckCircle />} color="bg-green-600" />
-        <StatsCard title="Rejected" value={`₹${report?.amount_summary.rejected_amount}`} icon={<XCircle />} color="bg-red-600" />
-        <StatsCard title="Pending" value={report?.summary.total_draft} icon={<Clock />} color="bg-orange-500" subtext="Draft items" />
+        <StatsCard
+          title="Total Amount"
+          value={`₹${report?.summary?.total_amount || 0}`}
+          icon={<LayoutDashboard />}
+          color="bg-purple-600"
+        />
+
+        <StatsCard
+          title="Approved"
+          value={`₹${report?.summary?.approved_amount || 0}`}
+          icon={<CheckCircle />}
+          color="bg-green-600"
+        />
+
+        <StatsCard
+          title="Rejected"
+          value={`₹${report?.summary?.rejected_amount || 0}`}
+          icon={<XCircle />}
+          color="bg-red-600"
+        />
+
+        <StatsCard
+          title="Total Expenses"
+          value={report?.summary?.total_expenses || 0}
+          icon={<Clock />}
+          color="bg-orange-500"
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -119,7 +564,7 @@ const Expenses = () => {
               <Navigation className="w-5 h-5 text-purple-600" /> Travel Breakdown
             </h3>
             <div className="space-y-4">
-              {report?.travel_breakdown.map((item, idx) => (
+             {travelBreakdown?.map((item, idx) => (
                 <div key={idx} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-white rounded-lg shadow-sm">
@@ -152,46 +597,96 @@ const Expenses = () => {
                     <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase">Travel Details</th>
                     <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase">Amount</th>
                     <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase">Status</th>
-                    <th className="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase">Action</th>
+                    {/* <th className="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase">Action</th> */}
+                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase">Attachments</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {expenses.map((exp) => (
-                    <tr key={exp.id} className="hover:bg-gray-50/50 transition-colors">
+                  {report?.employees?.map((item) => (
+                    <tr key={item.expense_id}>
+
+                      {/* USER */}
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center font-bold">
-                            {exp.user.name.charAt(0)}
+                            {item.user?.name?.charAt(0)}
                           </div>
                           <div>
-                            <p className="text-sm font-bold text-gray-900">{exp.user.name}</p>
-                            <p className="text-xs text-gray-500">{exp.expense_type}</p>
+                            <p className="text-sm font-bold text-gray-900">
+                              {item.user?.name}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {item.user?.email}
+                            </p>
                           </div>
                         </div>
                       </td>
+
+                      {/* TRAVEL / EXPENSE COUNT */}
                       <td className="px-6 py-4">
-                        <div className="flex items-center gap-2 text-sm text-gray-700">
-                          <span className="font-medium">{exp.departure_location}</span>
-                          <ChevronRight className="w-3 h-3 text-gray-400" />
-                          <span className="font-medium">{exp.arrival_location}</span>
-                        </div>
-                        <p className="text-[10px] text-gray-400 mt-1 uppercase font-bold tracking-wider">{exp.travel_mode} • {exp.distance} {exp.distance_unit}</p>
+                        <p className="text-sm font-black">
+                          {item.expense_details?.travel_mode || "manual"}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {item.expense_details?.expense_date}
+                        </p>
                       </td>
+
+                      {/* AMOUNT */}
                       <td className="px-6 py-4">
-                        <p className="text-sm font-black text-gray-900">₹{exp.total_amount}</p>
+                        <p className="text-sm font-black">
+                          ₹{item.expense_details?.total_expense || 0}
+                        </p>
                       </td>
+
+                      {/* STATUS (API me status nahi hai so fallback) */}
                       <td className="px-6 py-4">
-                        <span className={`px-3 py-1 rounded-full text-[10px] font-bold border uppercase tracking-tighter ${getStatusColor(exp.status)}`}>
-                          {exp.status}
+                        <span className="px-3 py-1 rounded-full text-xs font-bold border bg-gray-100 text-gray-600 border-gray-200">
+                          NA
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-center">
-                        <button 
-                          onClick={() => fetchExpenseDetail(exp.id)}
-                          className="p-2 hover:bg-purple-50 rounded-lg text-purple-600 transition-colors"
+
+                      {/* ACTION */}
+                      {/* <td className="px-6 py-4 text-center">
+                        <button
+                          onClick={() => fetchExpenseDetail(item.expense_id)}
+                          className="text-purple-600 font-bold text-sm hover:underline"
                         >
-                          <Eye className="w-5 h-5" />
+                          View
                         </button>
+                      </td> */}
+                      <td className="px-6 py-4">
+                        <div className="flex gap-2 flex-wrap">
+                          {item.attachments?.length > 0 ? (
+                            item.attachments.map((file, i) => {
+                              const isPdf = file.toLowerCase().includes(".pdf");
+
+                              return (
+                                <a
+                                  key={i}
+                                  href={file}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="flex items-center gap-2 text-xs px-3 py-1.5 rounded-full font-semibold
+                       bg-purple-50 text-purple-700 border border-purple-200
+                       hover:bg-purple-100 transition"
+                                >
+                                  {isPdf ? (
+                                    <FileText size={14} className="text-red-500" />
+                                  ) : (
+                                    <Eye size={14} className="text-blue-500" />
+                                  )}
+
+                                  <span>
+                                    {isPdf ? "PDF" : "Doc"}
+                                  </span>
+                                </a>
+                              );
+                            })
+                          ) : (
+                            <span className="text-xs text-gray-400">No attachments</span>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -233,15 +728,15 @@ const Expenses = () => {
 
                   {/* Route Details */}
                   <div className="grid grid-cols-2 gap-4">
-                    <DetailItem label="From" value={selectedExpense.departure_location} icon={<MapPin className="text-red-500"/>} />
-                    <DetailItem label="To" value={selectedExpense.arrival_location} icon={<MapPin className="text-green-500"/>} />
+                    <DetailItem label="From" value={selectedExpense?.expense_details?.departure_location} icon={<MapPin className="text-red-500" />} />
+                    <DetailItem label="To" value={selectedExpense?.expense_details?.arrival_location} icon={<MapPin className="text-green-500" />} />
                   </div>
 
                   <div className="bg-gray-50 p-5 rounded-2xl grid grid-cols-2 gap-y-6">
-                    <DetailItem label="Travel Mode" value={selectedExpense.travel_mode} icon={<Car className="text-purple-600 w-4 h-4"/>} isCompact />
-                    <DetailItem label="Total Distance" value={`${selectedExpense.distance} ${selectedExpense.distance_unit}`} icon={<Navigation className="text-purple-600 w-4 h-4"/>} isCompact />
-                    <DetailItem label="DA Amount" value={`₹${selectedExpense.da_amount}`} icon={<Wallet className="text-purple-600 w-4 h-4"/>} isCompact />
-                    <DetailItem label="Hotel Cost" value={`₹${selectedExpense.hotel_cost}`} icon={<Wallet className="text-purple-600 w-4 h-4"/>} isCompact />
+                    <DetailItem label="Travel Mode" value={selectedExpense.travel_mode} icon={<Car className="text-purple-600 w-4 h-4" />} isCompact />
+                    <DetailItem label="Total Distance" value={`${selectedExpense?.expense_details?.distance} ${selectedExpense?.expense_details?.distance_unit}`} icon={<Navigation className="text-purple-600 w-4 h-4" />} isCompact />
+                    <DetailItem label="DA Amount" value={`₹${selectedExpense?.expense_details?.da}`} icon={<Wallet className="text-purple-600 w-4 h-4" />} isCompact />
+                    <DetailItem label="Hotel Cost" value={`₹${selectedExpense?.expense_details?.hotel_cost}`} icon={<Wallet className="text-purple-600 w-4 h-4" />} isCompact />
                   </div>
 
                   {/* Total Amount Focus */}
@@ -264,26 +759,48 @@ const Expenses = () => {
                   {/* Photos */}
                   <div>
                     <h5 className="text-xs font-bold text-gray-400 uppercase mb-3">Attachments & Proofs</h5>
-                    {selectedExpense.photos.length > 0 ? (
+                    {selectedExpense?.attachments?.length > 0 ? (
                       <div className="grid grid-cols-2 gap-3">
-                        {selectedExpense.photos.map((photo, i) => (
-                          <div key={i} className="group relative rounded-xl overflow-hidden border border-gray-200">
-                             {photo.photo_type === 'pdf' ? (
-                               <div className="h-24 bg-gray-100 flex items-center justify-center flex-col gap-1 cursor-pointer">
-                                  <FileText className="text-red-500" />
-                                  <span className="text-[10px] font-bold">PDF FILE</span>
-                               </div>
-                             ) : (
-                               <img src={photo.photo_url} alt="Proof" className="h-24 w-full object-cover" />
-                             )}
-                             <a href={photo.photo_url} target="_blank" rel="noreferrer" className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                                <Eye className="text-white w-6 h-6" />
-                             </a>
-                          </div>
-                        ))}
+                        {selectedExpense.attachments.map((file, i) => {
+
+                          const isPdf =
+                            file.toLowerCase().includes(".pdf");
+
+                          const isDoc =
+                            file.toLowerCase().includes(".doc") ||
+                            file.toLowerCase().includes(".docx");
+
+                          return (
+                            <a
+                              key={i}
+                              href={file}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="border rounded-xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-gray-50 transition"
+                            >
+                              <FileText
+                                className={
+                                  isPdf
+                                    ? "text-red-500"
+                                    : "text-blue-500"
+                                }
+                              />
+
+                              <span className="text-xs font-bold text-center break-all">
+                                {isPdf
+                                  ? "PDF File"
+                                  : isDoc
+                                    ? "DOC File"
+                                    : "Attachment"}
+                              </span>
+                            </a>
+                          );
+                        })}
                       </div>
                     ) : (
-                      <p className="text-sm text-gray-400 text-center py-4 bg-gray-50 rounded-xl border-2 border-dashed">No photos uploaded</p>
+                      <p className="text-sm text-gray-400">
+                        No attachments
+                      </p>
                     )}
                   </div>
                 </div>

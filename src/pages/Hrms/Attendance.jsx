@@ -1,13 +1,13 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { 
-  CheckCircle, 
-  XCircle, 
-  Download, 
-  MapPin, 
-  Mail, 
-  Clock, 
-  Car, 
-  MessageSquare, 
+import {
+  CheckCircle,
+  XCircle,
+  Download,
+  MapPin,
+  Mail,
+  Clock,
+  Car,
+  MessageSquare,
   Calendar,
   Search,
   Filter,
@@ -17,72 +17,284 @@ import {
   UserCheck,
   UserX
 } from "lucide-react";
-
+import { useNavigate } from "react-router-dom";
 
 const ITEMS_PER_PAGE = 10;
 
 const Attendance = () => {
-const [data, setData] = useState([]);
-const [summary, setSummary] = useState({
-  total_employees: 0,
-  total_present: 0,
-  total_absent: 0,
-});
-  const [searchQuery, setSearchQuery] = useState("");
+  const [data, setData] = useState([]);
+
+
+  const navigate = useNavigate();
+
+  // drop dow + select filter 
+  const [employeeSearch, setEmployeeSearch] = useState("");
+  const [selectedEmployees, setSelectedEmployees] = useState([]);
+  const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false);
+  const [summary, setSummary] = useState({
+    total_employees: 0,
+    total_present: 0,
+    total_absent: 0,
+  });
   const [shiftFilter, setShiftFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  useEffect(() => {
-  const fetchAttendance = async () => {
-    try {
-      const res = await fetch(
-        "https://test.pearl-developer.com/Inbay_Innovations/public/api/attendance/dashboard",
-        {
-          headers: {
-            Authorization: "Bearer 200|I1ZZjquueG708yBOFYUUmUi2mYlIUNcrZDyJ208T81de1b2b",
-            "Content-Type": "application/json",
-          },
-        }
-      );
 
-      const result = await res.json();
+  const today = new Date();
 
-      if (result.success) {
-        setSummary(result.summary);
+  const [selectedDay, setSelectedDay] = useState(today.getDate());
+  const [month, setMonth] = useState(today.getMonth() + 1);
+  const [year, setYear] = useState(today.getFullYear());
+  const [activeTab, setActiveTab] = useState("monthly");
+  const [showCustomPopup, setShowCustomPopup] = useState(false);
 
-        const formatted = result.employees.map((emp) => ({
-          id: emp.id,
-          name: emp.name,
-          email: emp.email,
-          group: emp.group,
-          department: emp.department,
-          attendance: emp.status,
-          scheduledStart: emp.time_tracking.scheduled.split(" - ")[0],
-          scheduledEnd: emp.time_tracking.scheduled.split(" - ")[1],
-          actualStart: emp.time_tracking.actual.split(" - ")[0],
-          actualEnd: emp.time_tracking.actual.split(" - ")[1],
-          totalHours: emp.time_tracking.total_hours,
-          location: "Office",
-          endLocation: emp.travel_details.end_location,
-          remarks: emp.remarks.general,
-          distance: emp.travel_details.total_distance,
-          morningRemark: emp.remarks.morning,
-          eveningRemark: emp.remarks.evening,
-          morningOdo: emp.travel_details.odometer.split(" → ")[0],
-          eveningOdo: emp.travel_details.odometer.split(" → ")[1],
-          totalOdo: emp.travel_details.total_distance,
-          date: emp.date,
-          day: emp.day,
-        }));
+  const [customStartDate, setCustomStartDate] = useState("");
+  const [customEndDate, setCustomEndDate] = useState("");
+  const [weekType, setWeekType] = useState("this");
 
-        setData(formatted);
-      }
-    } catch (error) {
-      console.error("API Error:", error);
+  const getWeekRange = (type = "this") => {
+
+    const today = new Date();
+
+    const currentDay = today.getDay();
+
+    const diff = currentDay === 0 ? -6 : 1 - currentDay;
+
+    const monday = new Date(today);
+
+    monday.setDate(today.getDate() + diff);
+
+    if (type === "last") {
+      monday.setDate(monday.getDate() - 7);
     }
+
+    const sunday = new Date(monday);
+
+    sunday.setDate(monday.getDate() + 6);
+
+    return {
+      startDate: monday.toISOString().split("T")[0],
+      endDate: sunday.toISOString().split("T")[0],
+    };
   };
 
-  fetchAttendance();
-}, []);
+
+  const renderImageLink = (url, label) => {
+    if (!url) return <span className="text-gray-400">{label}</span>;
+
+    return (
+      <button
+        onClick={() =>
+          navigate("/image-viewer", {
+            state: { url },
+          })
+        }
+        className="text-purple-600 hover:underline font-medium"
+      >
+        {label}
+      </button>
+    );
+  };
+
+  useEffect(() => {
+
+    const fetchAttendance = async () => {
+      try {
+
+        let url = "";
+
+        // DAILY API
+        if (activeTab === "daily") {
+
+          url = `https://test.pearl-developer.com/Inbay_Innovations/public/api/attendance/dashboard?date=${year}-${String(month).padStart(2, "0")}-${String(selectedDay).padStart(2, "0")}`;
+
+        }
+
+        // WEEKLY API
+        else if (activeTab === "weekly") {
+
+          const { startDate, endDate } = getWeekRange(weekType);
+
+          url = `https://test.pearl-developer.com/Inbay_Innovations/public/api/attendance/dashboard?start_date=${startDate}&end_date=${endDate}`;
+        }
+        // MONTHLY API
+        else if (activeTab === "monthly") {
+
+          url = `https://test.pearl-developer.com/Inbay_Innovations/public/api/attendance/dashboard?month=${month}&year=${year}`;
+
+        }
+
+        // CUSTOM API
+        else if (activeTab === "custom") {
+
+          url = `https://test.pearl-developer.com/Inbay_Innovations/public/api/attendance/dashboard?start_date=${customStartDate}&end_date=${customEndDate}`;
+
+        }
+
+        const res = await fetch(url, {
+          headers: {
+            Authorization:
+              "Bearer 200|I1ZZjquueG708yBOFYUUmUi2mYlIUNcrZDyJ208T81de1b2b",
+            "Content-Type": "application/json",
+          },
+        });
+
+        const result = await res.json();
+
+        console.log(result);
+
+        // ---------- MONTHLY RESPONSE ----------
+        if (activeTab === "monthly") {
+
+          const allEmployees = result.data.flatMap((dayData) =>
+            dayData.employees.map((emp) => ({
+              id: `${emp.id}-${dayData.date}`,
+              name: emp.name || "N/A",
+              email: emp.email || "N/A",
+              group: emp.group || "N/A",
+              department: emp.department || "N/A",
+              attendance: emp.status || "Absent",
+
+              scheduledStart: emp.time_tracking?.scheduled?.split(" - ")[0] || "--",
+              scheduledEnd: emp.time_tracking?.scheduled?.split(" - ")[1] || "--",
+
+              actualStart: emp.time_tracking?.actual?.split(" - ")[0] || "--",
+              actualEnd: emp.time_tracking?.actual?.split(" - ")[1] || "--",
+
+              totalHours: emp.time_tracking?.total_hours || "0h 0m",
+
+              location: emp.location,
+              endLocation: emp.travel_details?.end_location || "--",
+
+              distance: emp.travel_details?.total_distance || "0 KM",
+
+              morningRemark: emp.remarks?.morning || "--",
+              eveningRemark: emp.remarks?.evening || "--",
+              remarks: emp.remarks?.general || "--",
+
+              morningOdo: emp.travel_details?.odometer?.split(" → ")[0] || "0",
+              eveningOdo: emp.travel_details?.odometer?.split(" → ")[1] || "0",
+
+              attendance_images: emp.attendance_images || null,   // ✅ ADD THIS
+
+              date: dayData.date,
+              day: dayData.day,
+            }))
+          );
+
+          setData(allEmployees);
+
+          setSummary({
+            total_employees:
+              result.data[0]?.summary?.total_employees || 0,
+
+            total_present: result.data.reduce(
+              (acc, item) => acc + item.summary.total_present,
+              0
+            ),
+
+            total_absent: result.data.reduce(
+              (acc, item) => acc + item.summary.total_absent,
+              0
+            ),
+          });
+        }
+
+        // ---------- DAILY / WEEKLY / CUSTOM ----------
+
+        else {
+          const source = result.data
+            ? result.data
+            : result.employees
+              ? [
+                {
+                  date: result.date,
+                  day: result.day,
+                  summary: result.summary,
+                  employees: result.employees,
+                },
+              ]
+              : [];
+
+          const employees = source.flatMap((day) =>
+            (day.employees || []).map((emp) => ({
+              id: `${emp.id}-${day.date}`,
+
+              name: emp.name || "N/A",
+              email: emp.email || "N/A",
+              group: emp.group || "N/A",
+              department: emp.department || "N/A",
+
+              attendance: emp.status || "Absent",
+
+              scheduledStart: emp.time_tracking?.scheduled?.split(" - ")[0] || "--",
+              scheduledEnd: emp.time_tracking?.scheduled?.split(" - ")[1] || "--",
+
+              actualStart: emp.time_tracking?.actual?.split(" - ")[0] || "--",
+              actualEnd: emp.time_tracking?.actual?.split(" - ")[1] || "--",
+
+              totalHours: emp.time_tracking?.total_hours || "0h 0m",
+
+              location: "Office",
+              endLocation: emp.travel_details?.end_location || "--",
+
+              remarks: emp.remarks?.general || "--",
+
+              distance: emp.travel_details?.total_distance || "0 KM",
+
+              morningRemark: emp.remarks?.morning || "--",
+              eveningRemark: emp.remarks?.evening || "--",
+
+              morningOdo: emp.travel_details?.odometer?.split(" → ")[0] || "0",
+              eveningOdo: emp.travel_details?.odometer?.split(" → ")[1] || "0",
+
+              date: emp.date,
+              day: emp.day,
+
+              attendance_images: emp.attendance_images || null,
+            }))
+          );
+
+          setData(employees);
+
+          setSummary({
+            total_employees: source[0]?.summary?.total_employees || 0,
+            total_present: source.reduce(
+              (acc, item) => acc + (item.summary?.total_present || 0),
+              0
+            ),
+            total_absent: source.reduce(
+              (acc, item) => acc + (item.summary?.total_absent || 0),
+              0
+            ),
+          });
+        }
+
+      } catch (error) {
+
+        console.log(error);
+
+      }
+    };
+
+    fetchAttendance();
+
+  }, [
+    activeTab,
+    selectedDay,
+    month,
+    year,
+    customStartDate,
+    customEndDate,
+    weekType
+  ]);
+
+  useEffect(() => {
+    const totalDays = new Date(year, month, 0).getDate();
+
+    if (selectedDay > totalDays) {
+      setSelectedDay(1);
+    }
+  }, [month, year]);
 
   // Extract unique shifts for the dropdown filter dynamically
   const uniqueShifts = useMemo(() => {
@@ -93,17 +305,99 @@ const [summary, setSummary] = useState({
   // Filter Data based on Search and Shift Filter
   const filteredData = useMemo(() => {
     return data.filter((item) => {
-      const matchesName = item.name.toLowerCase().includes(searchQuery.toLowerCase());
-      const itemShift = `${item.scheduledStart} - ${item.scheduledEnd}`;
-      const matchesShift = shiftFilter === "" || itemShift === shiftFilter;
-      return matchesName && matchesShift;
-    });
-  },[data, searchQuery, shiftFilter]);
+      const matchesEmployee =
 
+        selectedEmployees.length === 0 ||
+
+        selectedEmployees.includes(item.name);
+
+      const itemShift = `${item.scheduledStart} - ${item.scheduledEnd}`;
+
+      const matchesShift =
+        shiftFilter === "" || itemShift === shiftFilter;
+
+      // DATE FILTER
+      const itemDay = new Date(item.date).getDate();
+
+      let matchesDay = true;
+
+      if (activeTab === "daily") {
+        matchesDay = itemDay === selectedDay;
+      }
+      return matchesEmployee && matchesShift && matchesDay;
+    });
+  }, [data, selectedEmployees, shiftFilter, selectedDay, activeTab]);
+
+
+  const uniqueEmployees = useMemo(() => {
+
+    const unique = [];
+
+    const map = new Map();
+
+    data.forEach((emp) => {
+
+      if (!map.has(emp.name)) {
+
+        map.set(emp.name, true);
+
+        unique.push(emp.name);
+      }
+    });
+
+    return unique;
+
+  }, [data]);
+  const filteredEmployeeOptions = uniqueEmployees.filter((name) =>
+    name.toLowerCase().includes(employeeSearch.toLowerCase())
+  );
+
+  const handleEmployeeSelect = (employeeName) => {
+
+    setSelectedEmployees((prev) => {
+
+      if (prev.includes(employeeName)) {
+        return prev.filter((item) => item !== employeeName);
+      }
+
+      return [...prev, employeeName];
+    });
+
+    setCurrentPage(1);
+  };
+
+  const handleSelectAllEmployees = () => {
+
+    if (selectedEmployees.length === uniqueEmployees.length) {
+
+      setSelectedEmployees([]);
+
+    } else {
+
+      setSelectedEmployees(uniqueEmployees);
+    }
+
+    setCurrentPage(1);
+  };
+
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [
+    activeTab,
+    selectedDay,
+    month,
+    year,
+    customStartDate,
+    customEndDate,
+    weekType,
+    shiftFilter,
+    selectedEmployees
+  ]);
   // Calculate dynamic stats based on filtered data
-const totalEmployees = summary.total_employees;
-const totalPresent = summary.total_present;
-const totalAbsent = summary.total_absent;
+  const totalEmployees = summary.total_employees;
+  const totalPresent = summary.total_present;
+  const totalAbsent = summary.total_absent;
 
   // Pagination Logic
   const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE) || 1;
@@ -111,12 +405,6 @@ const totalAbsent = summary.total_absent;
     (currentPage - 1) * ITEMS_PER_PAGE,
     currentPage * ITEMS_PER_PAGE
   );
-
-  // Handlers for Filters (Reset to page 1 when filtering)
-  const handleSearch = (e) => {
-    setSearchQuery(e.target.value);
-    setCurrentPage(1);
-  };
 
   const handleShiftFilter = (e) => {
     setShiftFilter(e.target.value);
@@ -126,27 +414,92 @@ const totalAbsent = summary.total_absent;
   // Export CSV
   const handleExport = () => {
     if (filteredData.length === 0) return alert("No data to export!");
-    
-    // Omit the internal 'id' from export
-    const headers = Object.keys(filteredData[0]).filter(k => k !== 'id').join(",");
-    const rows = filteredData.map((obj) => {
-      const { id, ...rest } = obj;
-      return Object.values(rest).map(val => `"${val}"`).join(",");
-    }).join("\n");
-    
+
+    const formatHeader = (key) => {
+      return key
+        .replace(/_/g, " ")
+        .replace(/([A-Z])/g, " $1")
+        .replace(/\s+/g, " ")
+        .trim()
+        .replace(/\b\w/g, (c) => c.toUpperCase());
+    };
+
+    // 👉 DEFINE CUSTOM HEADERS (INCLUDING IMAGES)
+    const headers = [
+      "Name",
+      "Email",
+      "Department",
+      "Group",
+      "Attendance",
+      "Scheduled Start",
+      "Scheduled End",
+      "Actual Start",
+      "Actual End",
+      "Total Hours",
+      "Distance",
+      "Morning Remark",
+      "Evening Remark",
+      "General Remarks",
+
+      // IMAGE COLUMNS 👇
+      "Selfie IN",
+      "Selfie OUT",
+      "Speedometer IN",
+      "Speedometer OUT",
+      "Signature OUT",
+    ].join(",");
+
+    const rows = filteredData
+      .map((item) => {
+        const img = item.attendance_images || {};
+
+        const row = [
+          item.name,
+          item.email,
+          item.department,
+          item.group,
+          item.attendance,
+          `${item.scheduledStart} - ${item.scheduledEnd}`,
+          `${item.actualStart} - ${item.actualEnd}`,
+          item.actualStart,
+          item.actualEnd,
+          item.totalHours,
+          item.distance,
+          item.morningRemark,
+          item.eveningRemark,
+          item.remarks,
+
+          // IMAGE VALUES 👇 (URLS)
+          img.selfie_photo_in || "",
+          img.selfie_photo_out || "",
+          img.speedometer_photo_in || "",
+          img.speedometer_photo_out || "",
+          img.signature_out || "",
+        ];
+
+        return row.map((val) => `"${val ?? ""}"`).join(",");
+      })
+      .join("\n");
+
     const csv = headers + "\n" + rows;
+
     const blob = new Blob([csv], { type: "text/csv" });
     const url = window.URL.createObjectURL(blob);
 
     const a = document.createElement("a");
     a.href = url;
-    a.download = "attendance_filtered.csv";
+    a.download = "attendance_with_images.csv";
     a.click();
   };
+  const daysInMonth = new Date(year, month, 0).getDate();
 
+  const daysArray = Array.from(
+    { length: daysInMonth },
+    (_, i) => i + 1
+  );
   return (
     <div className="bg-gray-50 h-screen flex flex-col font-sans">
-      
+
       {/* TOP HEADER */}
       <div className="bg-white px-6 py-4 shadow-sm border-b border-gray-200 flex justify-between items-center z-10 flex-shrink-0">
         <div>
@@ -164,35 +517,237 @@ const totalAbsent = summary.total_absent;
       </div>
 
       {/* TOOLBAR: SEARCH & FILTERS */}
-      <div className="bg-white px-6 py-4 shadow-sm border-b border-gray-100 flex flex-col md:flex-row gap-4 items-center justify-between z-0 flex-shrink-0">
-        
-        {/* Search Bar */}
-        <div className="relative w-full md:w-80">
-          <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
-          <input 
-            type="text" 
-            placeholder="Search by Employee Name..." 
-            value={searchQuery}
-            onChange={handleSearch}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm transition-all"
-          />
+      <div className="bg-white px-6 py-4 shadow-sm border-b border-gray-100 flex flex-col gap-5">
+
+        {/* TOP SECTION */}
+        <div className="flex flex-col xl:flex-row gap-4 xl:items-center xl:justify-between">
+
+          {/* LEFT FILTERS */}
+          <div className="flex flex-col lg:flex-row gap-4 flex-1">
+
+            {/* EMPLOYEE SEARCH */}
+            <div className="relative w-full md:max-w-md">
+
+              <div
+                onClick={() => setShowEmployeeDropdown(!showEmployeeDropdown)}
+                className="w-full min-h-[46px] border border-gray-200 rounded-xl px-3 py-2 bg-white cursor-pointer flex items-center justify-between shadow-sm"
+              >
+                {selectedEmployees.length === 0 ? (
+                  <span className="text-sm text-gray-400">
+                    Search & Select Employees
+                  </span>
+                ) : (
+                  <span className="text-sm font-semibold text-[#8b2cf5]">
+                    {selectedEmployees.length} Employees Selected
+                  </span>
+                )}
+              </div>
+
+              {showEmployeeDropdown && (
+                <div className="absolute top-full mt-2 left-0 w-full bg-white border border-gray-200 rounded-2xl shadow-xl z-50 p-3">
+
+                  {/* SEARCH */}
+                  <div className="relative mb-3">
+                    <svg
+                      className="absolute left-3 top-2.5 w-4 h-4 text-gray-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                      />
+                    </svg>
+
+                    <input
+                      type="text"
+                      placeholder="Search employee..."
+                      value={employeeSearch}
+                      onChange={(e) => setEmployeeSearch(e.target.value)}
+                      className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-purple-500"
+                    />
+                  </div>
+
+                  {/* SELECT ALL */}
+                  <label className="flex items-center gap-2 px-2 py-2 hover:bg-gray-50 rounded-lg cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedEmployees.length === uniqueEmployees.length}
+                      onChange={handleSelectAllEmployees}
+                    />
+                    <span className="text-sm font-semibold text-[#8b2cf5]">
+                      Select All
+                    </span>
+                  </label>
+
+                  {/* EMPLOYEE LIST */}
+                  <div className="max-h-60 overflow-y-auto mt-2 space-y-1">
+
+                    {filteredEmployeeOptions.map((name, idx) => (
+                      <label
+                        key={idx}
+                        className="flex items-center gap-2 px-2 py-2 hover:bg-gray-50 rounded-lg cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedEmployees.includes(name)}
+                          onChange={() => handleEmployeeSelect(name)}
+                        />
+                        <span className="text-sm text-gray-700">{name}</span>
+                      </label>
+                    ))}
+
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* SHIFT FILTER */}
+            <div className="relative w-full lg:w-64">
+              <Filter
+                className="absolute left-3 top-3 text-purple-500"
+                size={18}
+              />
+
+              <select
+                value={shiftFilter}
+                onChange={handleShiftFilter}
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm bg-white shadow-sm appearance-none"
+              >
+                <option value="">All Shifts</option>
+
+                {uniqueShifts.map((shift, idx) => (
+                  <option key={idx} value={shift}>
+                    {shift}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+
+
         </div>
 
-        {/* Shift Filter Dropdown */}
-        <div className="relative w-full md:w-64">
-          <Filter className="absolute left-3 top-2.5 text-purple-500" size={18} />
-          <select 
-            value={shiftFilter}
-            onChange={handleShiftFilter}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm bg-white cursor-pointer transition-all appearance-none"
-          >
-            <option value="">All Shifts</option>
-            {uniqueShifts.map((shift, idx) => (
-              <option key={idx} value={shift}>{shift}</option>
+        {/* TABS + FILTERS */}
+        <div className="flex flex-col lg:flex-row gap-4 lg:items-center lg:justify-between">
+
+          {/* TABS */}
+          <div className="bg-gray-100 p-1 rounded-2xl flex flex-wrap items-center gap-1 shadow-sm w-fit">
+
+            {["daily", "weekly", "monthly", "custom"].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => {
+                  if (tab === "custom") {
+                    setActiveTab("custom");
+                    setShowCustomPopup(true);
+                  } else {
+                    setActiveTab(tab);
+                  }
+                }}
+                className={`px-4 py-2 rounded-xl text-sm font-bold capitalize transition-all duration-300
+          ${activeTab === tab
+                    ? "bg-purple-600 text-white shadow-md"
+                    : "text-gray-600 hover:bg-white"
+                  }`}
+              >
+                {tab}
+              </button>
             ))}
-          </select>
+          </div>
+
+          {/* ACTIVE FILTERS */}
+          <div className="flex flex-wrap gap-3 items-center">
+
+            {/* DAILY */}
+            {activeTab === "daily" && (
+              <>
+                <select
+                  value={selectedDay}
+                  onChange={(e) => setSelectedDay(Number(e.target.value))}
+                  className="border border-gray-300 px-4 py-2.5 rounded-xl text-sm bg-white shadow-sm"
+                >
+                  {daysArray.map((day) => (
+                    <option key={day} value={day}>
+                      Day {day}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  value={month}
+                  onChange={(e) => setMonth(Number(e.target.value))}
+                  className="border border-gray-300 px-4 py-2.5 rounded-xl text-sm bg-white shadow-sm"
+                >
+                  <option value={1}>January</option>
+                  <option value={2}>February</option>
+                  <option value={3}>March</option>
+                  <option value={4}>April</option>
+                  <option value={5}>May</option>
+                  <option value={6}>June</option>
+                  <option value={7}>July</option>
+                  <option value={8}>August</option>
+                  <option value={9}>September</option>
+                  <option value={10}>October</option>
+                  <option value={11}>November</option>
+                  <option value={12}>December</option>
+                </select>
+              </>
+            )}
+
+            {/* MONTHLY */}
+            {activeTab === "monthly" && (
+              <>
+                <select
+                  value={month}
+                  onChange={(e) => setMonth(Number(e.target.value))}
+                  className="border border-gray-300 px-4 py-2.5 rounded-xl text-sm bg-white shadow-sm"
+                >
+                  <option value={1}>January</option>
+                  <option value={2}>February</option>
+                  <option value={3}>March</option>
+                  <option value={4}>April</option>
+                  <option value={5}>May</option>
+                  <option value={6}>June</option>
+                  <option value={7}>July</option>
+                  <option value={8}>August</option>
+                  <option value={9}>September</option>
+                  <option value={10}>October</option>
+                  <option value={11}>November</option>
+                  <option value={12}>December</option>
+                </select>
+
+                <select
+                  value={year}
+                  onChange={(e) => setYear(Number(e.target.value))}
+                  className="border border-gray-300 px-4 py-2.5 rounded-xl text-sm bg-white shadow-sm"
+                >
+                  {[2024, 2025, 2026, 2027].map((yr) => (
+                    <option key={yr} value={yr}>
+                      {yr}
+                    </option>
+                  ))}
+                </select>
+              </>
+            )}
+
+            {/* WEEKLY */}
+            {activeTab === "weekly" && (
+              <select
+                value={weekType}
+                onChange={(e) => setWeekType(e.target.value)}
+                className="border border-gray-300 px-4 py-2.5 rounded-xl text-sm bg-white shadow-sm"
+              >
+                <option value="this">This Week</option>
+                <option value="last">Last Week</option>
+              </select>
+            )}
+          </div>
         </div>
-        
       </div>
 
       {/* MAIN CONTENT AREA */}
@@ -234,26 +789,26 @@ const totalAbsent = summary.total_absent;
               </div>
             </div>
           </div>
-          
+
           {/* EMPLOYEE CARDS LIST */}
           <div className="space-y-5">
             {paginatedData.length === 0 ? (
               <div className="text-center py-20 bg-white rounded-2xl border border-gray-100 shadow-sm">
                 <p className="text-gray-500 text-lg font-medium">No records found matching your criteria.</p>
-                <button onClick={() => { setSearchQuery(''); setShiftFilter(''); }} className="text-purple-600 mt-2 hover:underline">Clear Filters</button>
+                <button onClick={() => { setShiftFilter(''); }} className="text-purple-600 mt-2 hover:underline">Clear Filters</button>
               </div>
             ) : (
               paginatedData.map((item) => {
                 const isPresent = item.attendance.toLowerCase() === "present";
 
                 return (
-                  <div 
-                    key={item.id} 
+                  <div
+                    key={item.id}
                     className="bg-white rounded-2xl shadow-sm border border-purple-100 hover:shadow-md transition-shadow duration-200 overflow-hidden"
                   >
                     {/* TOP PROFILE SECTION */}
                     <div className="p-5 border-b border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                      
+
                       {/* Avatar, Name, Email, Location */}
                       <div className="flex items-center gap-4">
                         <div className="h-14 w-14 flex-shrink-0 rounded-full bg-gradient-to-br from-purple-500 to-purple-700 flex items-center justify-center text-white font-bold text-xl shadow-sm">
@@ -263,10 +818,10 @@ const totalAbsent = summary.total_absent;
                           <h3 className="text-lg font-bold text-gray-900">{item.name}</h3>
                           <div className="text-sm text-gray-500 flex flex-wrap items-center gap-x-4 gap-y-1 mt-1">
                             <span className="flex items-center gap-1">
-                              <Mail size={14} className="text-purple-500"/> {item.email}
+                              <Mail size={14} className="text-purple-500" /> {item.email}
                             </span>
                             <span className="flex items-center gap-1">
-                              <MapPin size={14} className="text-purple-500"/> {item.location}
+                              <MapPin size={14} className="text-purple-500" /> {item.location}
                             </span>
                           </div>
                           <div className="mt-2 inline-flex items-center gap-2 text-xs font-semibold text-purple-700 bg-purple-50 px-2.5 py-1 rounded-md border border-purple-100">
@@ -287,30 +842,30 @@ const totalAbsent = summary.total_absent;
                           </span>
                         )}
                         <span className="text-xs text-gray-400 mt-2 font-medium flex items-center gap-1">
-                          <Calendar size={13}/> {item.date} ({item.day})
+                          <Calendar size={13} /> {item.date} ({item.day})
                         </span>
                       </div>
                     </div>
 
                     {/* BOTTOM DETAILS GRID */}
                     <div className="p-5 grid grid-cols-1 md:grid-cols-3 gap-4 bg-gray-50/50">
-                      
+
                       {/* Card 1: Timings */}
                       <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
                         <h4 className="text-xs font-bold text-purple-600 uppercase mb-3 flex items-center gap-2">
-                          <Clock size={14}/> Time Tracking
+                          <Clock size={14} /> Time Tracking
                         </h4>
                         <div className="space-y-2.5 text-sm">
                           <div className="flex justify-between items-center">
-                            <span className="text-gray-500">Scheduled</span> 
+                            <span className="text-gray-500">Scheduled</span>
                             <span className="font-medium text-gray-800">{item.scheduledStart} - {item.scheduledEnd}</span>
                           </div>
                           <div className="flex justify-between items-center">
-                            <span className="text-gray-500">Actual</span> 
+                            <span className="text-gray-500">Actual</span>
                             <span className="font-medium text-gray-800">{item.actualStart} - {item.actualEnd}</span>
                           </div>
                           <div className="flex justify-between items-center pt-2.5 border-t border-gray-100">
-                            <span className="text-gray-500">Total Hours</span> 
+                            <span className="text-gray-500">Total Hours</span>
                             <span className="font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded">{item.totalHours}</span>
                           </div>
                         </div>
@@ -319,19 +874,19 @@ const totalAbsent = summary.total_absent;
                       {/* Card 2: Travel & Location */}
                       <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
                         <h4 className="text-xs font-bold text-purple-600 uppercase mb-3 flex items-center gap-2">
-                          <Car size={14}/> Travel Details
+                          <Car size={14} /> Travel Details
                         </h4>
                         <div className="space-y-2.5 text-sm">
                           <div className="flex justify-between items-center">
-                            <span className="text-gray-500">End Location</span> 
+                            <span className="text-gray-500">End Location</span>
                             <span className="font-medium text-gray-800">{item.endLocation}</span>
                           </div>
                           <div className="flex justify-between items-center">
-                            <span className="text-gray-500">Odometer</span> 
+                            <span className="text-gray-500">Odometer</span>
                             <span className="font-medium text-gray-800">{item.morningOdo} → {item.eveningOdo}</span>
                           </div>
                           <div className="flex justify-between items-center pt-2.5 border-t border-gray-100">
-                            <span className="text-gray-500">Total Distance</span> 
+                            <span className="text-gray-500">Total Distance</span>
                             <span className="font-bold text-gray-800">{item.distance} </span>
                           </div>
                         </div>
@@ -340,20 +895,48 @@ const totalAbsent = summary.total_absent;
                       {/* Card 3: Remarks */}
                       <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
                         <h4 className="text-xs font-bold text-purple-600 uppercase mb-3 flex items-center gap-2">
-                          <MessageSquare size={14}/> Remarks
+                          <MessageSquare size={14} /> Remarks
                         </h4>
                         <div className="space-y-2.5 text-sm">
                           <div className="flex justify-between items-center">
-                            <span className="text-gray-500">Morning</span> 
+                            <span className="text-gray-500">Morning</span>
                             <span className="font-medium text-gray-800 truncate max-w-[120px]" title={item.morningRemark}>{item.morningRemark}</span>
                           </div>
                           <div className="flex justify-between items-center">
-                            <span className="text-gray-500">Evening</span> 
+                            <span className="text-gray-500">Evening</span>
                             <span className="font-medium text-gray-800 truncate max-w-[120px]" title={item.eveningRemark}>{item.eveningRemark}</span>
                           </div>
                           <div className="flex justify-between items-center pt-2.5 border-t border-gray-100">
-                            <span className="text-gray-500">General</span> 
+                            <span className="text-gray-500">General</span>
                             <span className="font-medium text-gray-800 truncate max-w-[120px]" title={item.remarks}>{item.remarks}</span>
+                          </div>
+                        </div>
+                      </div>
+                      {/* Card 4: Images */}
+                      <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+                        <h4 className="text-xs font-bold text-purple-600 uppercase mb-3">
+                          Attendance Images
+                        </h4>
+
+                        <div className="space-y-2 text-sm">
+                          <div>
+                            {renderImageLink(item.attendance_images?.selfie_photo_in, "Selfie IN")}
+                          </div>
+
+                          <div>
+                            {renderImageLink(item.attendance_images?.selfie_photo_out, "Selfie OUT")}
+                          </div>
+
+                          <div>
+                            {renderImageLink(item.attendance_images?.speedometer_photo_in, "Speedometer IN")}
+                          </div>
+
+                          <div>
+                            {renderImageLink(item.attendance_images?.speedometer_photo_out, "Speedometer OUT")}
+                          </div>
+
+                          <div>
+                            {renderImageLink(item.attendance_images?.signature_out, "Signature OUT")}
                           </div>
                         </div>
                       </div>
@@ -382,17 +965,16 @@ const totalAbsent = summary.total_absent;
             >
               <ChevronLeft size={18} />
             </button>
-            
+
             <div className="flex items-center gap-1">
               {[...Array(totalPages)].map((_, i) => (
                 <button
                   key={i}
                   onClick={() => setCurrentPage(i + 1)}
-                  className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors ${
-                    currentPage === i + 1 
-                      ? "bg-purple-600 text-white shadow-sm" 
-                      : "text-gray-600 hover:bg-gray-100"
-                  }`}
+                  className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors ${currentPage === i + 1
+                    ? "bg-purple-600 text-white shadow-sm"
+                    : "text-gray-600 hover:bg-gray-100"
+                    }`}
                 >
                   {i + 1}
                 </button>
@@ -409,8 +991,78 @@ const totalAbsent = summary.total_absent;
           </div>
         </div>
       )}
+      {/* CUSTOM DATE POPUP */}
+      {showCustomPopup && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
 
+          <div className="bg-white rounded-2xl p-6 w-[90%] max-w-md shadow-2xl">
+
+            <h2 className="text-xl font-bold text-gray-800 mb-5">
+              Select Custom Date Range
+            </h2>
+
+            {/* START DATE */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-600 mb-2">
+                Start Date
+              </label>
+
+              <input
+                type="date"
+                value={customStartDate}
+                onChange={(e) => setCustomStartDate(e.target.value)}
+                className="w-full border border-gray-300 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-purple-500"
+              />
+            </div>
+
+            {/* END DATE */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-600 mb-2">
+                End Date
+              </label>
+
+              <input
+                type="date"
+                value={customEndDate}
+                onChange={(e) => setCustomEndDate(e.target.value)}
+                className="w-full border border-gray-300 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-purple-500"
+              />
+            </div>
+
+            {/* BUTTONS */}
+            <div className="flex justify-end gap-3">
+
+              <button
+                onClick={() => {
+                  setShowCustomPopup(false);
+                  setActiveTab("monthly");
+                }}
+                className="px-4 py-2 rounded-xl border border-gray-300 text-gray-600 hover:bg-gray-100"
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={() => {
+                  if (!customStartDate || !customEndDate) {
+                    return alert("Please select start and end date");
+                  }
+                  if (new Date(customEndDate) < new Date(customStartDate)) {
+                    return alert("End date cannot be before start date");
+                  }
+
+                  setShowCustomPopup(false);
+                }}
+                className="px-5 py-2 rounded-xl bg-purple-600 text-white hover:bg-purple-700"
+              >
+                Apply Filter
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
+
   );
 };
 
