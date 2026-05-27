@@ -95,6 +95,8 @@ const Attendance = () => {
     );
   };
 
+
+  const [rawResponse, setRawResponse] = useState(null);
   useEffect(() => {
 
     const fetchAttendance = async () => {
@@ -130,15 +132,17 @@ const Attendance = () => {
 
         }
 
+        const token = localStorage.getItem("token");
+
         const res = await fetch(url, {
           headers: {
-            Authorization:
-              "Bearer 200|I1ZZjquueG708yBOFYUUmUi2mYlIUNcrZDyJ208T81de1b2b",
+            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         });
 
         const result = await res.json();
+        setRawResponse(result);
 
         console.log(result);
 
@@ -329,6 +333,9 @@ const Attendance = () => {
   }, [data, selectedEmployees, shiftFilter, selectedDay, activeTab]);
 
 
+
+  console.log("Filtered Data:", filteredData)
+
   const uniqueEmployees = useMemo(() => {
 
     const unique = [];
@@ -413,84 +420,176 @@ const Attendance = () => {
 
   // Export CSV
   const handleExport = () => {
-    if (filteredData.length === 0) return alert("No data to export!");
+    if (!rawResponse?.data?.length) {
+      return alert("No data to export!");
+    }
 
-    const formatHeader = (key) => {
-      return key
-        .replace(/_/g, " ")
-        .replace(/([A-Z])/g, " $1")
-        .replace(/\s+/g, " ")
-        .trim()
-        .replace(/\b\w/g, (c) => c.toUpperCase());
-    };
-
-    // 👉 DEFINE CUSTOM HEADERS (INCLUDING IMAGES)
     const headers = [
+      "Date",
+      "Day",
+
       "Name",
       "Email",
-      "Department",
-      "Group",
-      "Attendance",
-      "Scheduled Start",
-      "Scheduled End",
-      "Actual Start",
-      "Actual End",
+      "Designation",
+      "Reporting To",
+      "HQ",
+
+      "Status",
+      "Present",
+
+      "Scheduled Timing",
+      "Check In",
+      "Check Out",
       "Total Hours",
-      "Distance",
+
+      "Start Location",
+      "End Location",
+      "GPS KM",
+
+      "Farmer Meeting",
+      "Field Visit",
+      "Visit Schedule",
+      "Visit Complete",
+
       "Morning Remark",
       "Evening Remark",
-      "General Remarks",
+      "General Remark",
 
-      // IMAGE COLUMNS 👇
       "Selfie IN",
       "Selfie OUT",
       "Speedometer IN",
       "Speedometer OUT",
+      "Signature IN",
       "Signature OUT",
     ].join(",");
 
-    const rows = filteredData
-      .map((item) => {
-        const img = item.attendance_images || {};
+    const rows = [];
+
+    rawResponse.data.forEach((dayData) => {
+      // AGAR EMPLOYEES EMPTY HAIN
+      if (!dayData.employees || dayData.employees.length === 0) {
+        rows.push(
+          [
+            dayData.date,
+            dayData.day,
+            "",
+            "NO EMPLOYEE RECORD",
+            "",
+            "",
+            "",
+            "",
+            "Absent",
+            "No",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+          ]
+            .map((val) => `"${String(val ?? "").replace(/"/g, '""')}"`)
+            .join(",")
+        );
+
+        return;
+      }
+
+      // EMPLOYEE ROWS
+      dayData.employees.forEach((emp) => {
+        const images = emp.attendance_images || {};
+        const remarks = emp.remarks || {};
+        const tracking = emp.time_tracking || {};
+        const travel = emp.travel_details || {};
+        const visits = emp.visit_details || {};
 
         const row = [
-          item.name,
-          item.email,
-          item.department,
-          item.group,
-          item.attendance,
-          `${item.scheduledStart} - ${item.scheduledEnd}`,
-          `${item.actualStart} - ${item.actualEnd}`,
-          item.actualStart,
-          item.actualEnd,
-          item.totalHours,
-          item.distance,
-          item.morningRemark,
-          item.eveningRemark,
-          item.remarks,
+          emp.date || dayData.date || "",
+          emp.day || dayData.day || "",
 
-          // IMAGE VALUES 👇 (URLS)
-          img.selfie_photo_in || "",
-          img.selfie_photo_out || "",
-          img.speedometer_photo_in || "",
-          img.speedometer_photo_out || "",
-          img.signature_out || "",
+          emp.name || "",
+          emp.email || "",
+          emp.designation || "",
+          emp.reporting_to || "",
+          emp.hq || "",
+
+          emp.status || "",
+          emp.present ? "Yes" : "No",
+
+          tracking.scheduled || "",
+          tracking.check_in || "",
+          tracking.check_out || "",
+          tracking.total_hours || "",
+
+          travel.start_location || "",
+          travel.end_location || "",
+          travel.gps_km || "",
+
+          visits.farmer_meeting || 0,
+          visits.field_visit || 0,
+          visits.visit_schedule || 0,
+          visits.visit_complete || 0,
+
+          remarks.morning || "",
+          remarks.evening || "",
+          remarks.general || "",
+
+          images.selfie_photo_in || "",
+          images.selfie_photo_out || "",
+          images.speedometer_photo_in || "",
+          images.speedometer_photo_out || "",
+          images.signature_in || "",
+          images.signature_out || "",
         ];
 
-        return row.map((val) => `"${val ?? ""}"`).join(",");
-      })
-      .join("\n");
+        rows.push(
+          row
+            .map((val) =>
+              `"${String(val ?? "").replace(/"/g, '""')}"`
+            )
+            .join(",")
+        );
+      });
+    });
 
-    const csv = headers + "\n" + rows;
+    const csvContent = [headers, ...rows].join("\n");
 
-    const blob = new Blob([csv], { type: "text/csv" });
+    const blob = new Blob([csvContent], {
+      type: "text/csv;charset=utf-8;",
+    });
+
     const url = window.URL.createObjectURL(blob);
 
     const a = document.createElement("a");
     a.href = url;
-    a.download = "attendance_with_images.csv";
+
+    a.download = `attendance_report_${Date.now()}.csv`;
+
+    document.body.appendChild(a);
+
     a.click();
+
+    document.body.removeChild(a);
+
+    window.URL.revokeObjectURL(url);
   };
+
+
+
+
   const daysInMonth = new Date(year, month, 0).getDate();
 
   const daysArray = Array.from(

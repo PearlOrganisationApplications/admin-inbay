@@ -33,7 +33,7 @@ const Expenses = () => {
   const [endDate, setEndDate] = useState("2026-05-22");
   const [filterMode, setFilterMode] = useState("month");
 
-  const TOKEN = "293|0c9Zqwm4c3GUEolDbL4xUDIAmxOwIS5oMXJj27Ti5f332c16";
+  // const TOKEN = "293|0c9Zqwm4c3GUEolDbL4xUDIAmxOwIS5oMXJj27Ti5f332c16";
   const BASE_URL = "https://test.pearl-developer.com/Inbay_Innovations/public/api/admin/expenses";
   useEffect(() => {
     fetchInitialData(); // expenses list
@@ -50,11 +50,16 @@ const Expenses = () => {
 
     try {
       // 1. Expenses List
-      const listRes = await fetch(BASE_URL, {
-        headers: { Authorization: `Bearer ${TOKEN}` },
+      const token = localStorage.getItem("token");
+
+      const res = await fetch(BASE_URL, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
       });
 
-      const listData = await listRes.json();
+      const listData = await res.json();
 
       if (listData.success) {
         setExpenses(listData.data?.data || []);
@@ -81,8 +86,13 @@ const Expenses = () => {
         url = `${BASE_URL}/report?month=${month}&year=${year}`;
       }
 
+      const token = localStorage.getItem("token");
+
       const res = await fetch(url, {
-        headers: { Authorization: `Bearer ${TOKEN}` },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
       });
 
       const data = await res.json();
@@ -99,21 +109,17 @@ const Expenses = () => {
   };
 
 
-  const handleEmployeeSelect = (name) => {
-    setSelectedEmployees((prev) =>
-      prev.includes(name)
-        ? prev.filter((n) => n !== name)
-        : [...prev, name]
-    );
-  };
-
   const handleSelectAllEmployees = () => {
-    if (selectedEmployees.length === uniqueEmployees.length) {
+    const allIds = uniqueEmployees.map(emp => emp.id);
+
+    if (selectedEmployees.length === allIds.length) {
       setSelectedEmployees([]);
     } else {
-      setSelectedEmployees(uniqueEmployees);
+      setSelectedEmployees(allIds);
     }
   };
+
+
   const fetchExpenseDetail = async (id) => {
     setDetailLoading(true);
     setIsModalOpen(true);
@@ -139,21 +145,29 @@ const Expenses = () => {
     }
   };
 
+
   const uniqueEmployees = React.useMemo(() => {
+    // Change 'expenses' to 'report?.employees'
+    if (!report?.employees?.length) return [];
+
     const map = new Map();
     const list = [];
 
-    expenses.forEach((item) => {
-      const name = item?.user?.name;
-      if (name && !map.has(name)) {
-        map.set(name, true);
-        list.push(name);
+    report.employees.forEach((item) => {
+      const user = item?.user;
+      if (!user?.id) return;
+
+      if (!map.has(user.id)) {
+        map.set(user.id, true);
+        list.push({
+          id: user.id,
+          name: user.name,
+        });
       }
     });
 
     return list;
-  }, [expenses]);
-
+  }, [report]); // Depend on report cha
 
   const dropdownRef = React.useRef(null);
 
@@ -169,37 +183,51 @@ const Expenses = () => {
   }, []);
 
   const filteredEmployeeOptions = React.useMemo(() => {
-    return uniqueEmployees.filter((name) =>
-      name.toLowerCase().includes(employeeSearch.toLowerCase())
+    return uniqueEmployees.filter((emp) =>
+      emp.name?.toLowerCase()?.includes(employeeSearch.toLowerCase())
     );
   }, [uniqueEmployees, employeeSearch]);
 
   const travelBreakdown = React.useMemo(() => {
-  if (!report?.employees) return [];
+    if (!report?.employees) return [];
 
-  const breakdownMap = {};
+    const breakdownMap = {};
 
-  report.employees.forEach((item) => {
-    const mode =
-      item?.expense_details?.travel_mode || "manual";
+    report.employees.forEach((item) => {
+      const mode =
+        item?.expense_details?.travel_mode || "manual";
 
-    const amount =
-      Number(item?.expense_details?.total_expense || 0);
+      const amount =
+        Number(item?.expense_details?.total_expense || 0);
 
-    if (!breakdownMap[mode]) {
-      breakdownMap[mode] = {
-        mode,
-        count: 0,
-        total_amount: 0,
-      };
+      if (!breakdownMap[mode]) {
+        breakdownMap[mode] = {
+          mode,
+          count: 0,
+          total_amount: 0,
+        };
+      }
+
+      breakdownMap[mode].count += 1;
+      breakdownMap[mode].total_amount += amount;
+    });
+
+    return Object.values(breakdownMap);
+  }, [report]);
+
+
+
+  const filteredEmployeesData = React.useMemo(() => {
+    if (!report?.employees) return [];
+
+    if (selectedEmployees.length === 0) {
+      return report.employees;
     }
 
-    breakdownMap[mode].count += 1;
-    breakdownMap[mode].total_amount += amount;
-  });
-
-  return Object.values(breakdownMap);
-}, [report]);
+    return report.employees.filter((item) =>
+      selectedEmployees.includes(item?.user?.id)
+    );
+  }, [report, selectedEmployees]);
 
 
 
@@ -355,6 +383,8 @@ const Expenses = () => {
     window.URL.revokeObjectURL(url);
   };
 
+  console.log(filteredEmployeeOptions);
+
   if (loading) return (
     <div className="flex h-screen items-center justify-center bg-gray-50">
       <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-600"></div>
@@ -467,6 +497,7 @@ const Expenses = () => {
 
           {/* EMPLOYEE DROPDOWN */}
           <div ref={dropdownRef} className="relative w-full md:w-80">
+
             <div
               onClick={() => setShowEmployeeDropdown(!showEmployeeDropdown)}
               className="w-full min-h-[46px] bg-white border rounded-xl px-3 py-2 flex items-center justify-between cursor-pointer shadow-sm"
@@ -493,22 +524,46 @@ const Expenses = () => {
                 />
 
                 <div className="max-h-60 overflow-y-auto space-y-1">
-                  {filteredEmployeeOptions.map((name, i) => (
-                    <label key={i} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded-lg">
+                  <div className="flex items-center justify-between mb-2 px-1">
+                    <label className="flex items-center gap-2 cursor-pointer">
                       <input
                         type="checkbox"
-                        checked={selectedEmployees.includes(name)}
-                        onChange={() =>
-                          setSelectedEmployees((prev) =>
-                            prev.includes(name)
-                              ? prev.filter((n) => n !== name)
-                              : [...prev, name]
-                          )
+                        checked={
+                          selectedEmployees.length === uniqueEmployees.length &&
+                          uniqueEmployees.length > 0
                         }
+                        onChange={handleSelectAllEmployees}
                       />
-                      <span className="text-sm">{name}</span>
+                      <span className="text-xs font-bold text-gray-600">
+                        Select All
+                      </span>
                     </label>
-                  ))}
+                  </div>
+                  {filteredEmployeeOptions.length === 0 ? (
+                    <p className="text-sm text-gray-400 p-2">
+                      No employees available
+                    </p>
+                  ) : (
+                    filteredEmployeeOptions.map((user) => (
+                      <label
+                        key={user.id}
+                        className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded-lg cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedEmployees.includes(user.id)}
+                          onChange={() =>
+                            setSelectedEmployees((prev) =>
+                              prev.includes(user.id)
+                                ? prev.filter((id) => id !== user.id)
+                                : [...prev, user.id]
+                            )
+                          }
+                        />
+                        <span className="text-sm">{user.name}</span>
+                      </label>
+                    ))
+                  )}
                 </div>
               </div>
             )}
@@ -564,7 +619,7 @@ const Expenses = () => {
               <Navigation className="w-5 h-5 text-purple-600" /> Travel Breakdown
             </h3>
             <div className="space-y-4">
-             {travelBreakdown?.map((item, idx) => (
+              {travelBreakdown?.map((item, idx) => (
                 <div key={idx} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-white rounded-lg shadow-sm">
@@ -602,7 +657,7 @@ const Expenses = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {report?.employees?.map((item) => (
+                  {filteredEmployeesData.map((item) => (
                     <tr key={item.expense_id}>
 
                       {/* USER */}

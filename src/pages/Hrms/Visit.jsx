@@ -406,6 +406,8 @@ const Visit = () => {
     total_expenses: "₹0",
   });
   const [loading, setLoading] = useState(true);
+    const [rawResponse, setRawResponse] = useState(null);
+  
 
   // ======================
   // FETCH DATA
@@ -416,16 +418,17 @@ const Visit = () => {
       try {
         const url = getApiUrl(); // ✅ FIXED (was missing)
 
-        const response = await fetch(url, {
-          method: "GET",
+         const token = localStorage.getItem("token");
+
+        const res = await fetch(url, {
           headers: {
-            Authorization:
-              "Bearer 333|BCmQsOpo75ZUDVnm5tGYcoilP0NfNhIY3VoLhhTi7aa88f01",
+            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         });
 
-        const json = await response.json();
+        const json = await res.json();
+        setRawResponse(json); // ✅ Store raw response for CSV export
 
         if (json.success) {
           const allVisits = [];
@@ -541,55 +544,121 @@ const Visit = () => {
 
 
   // ✅ Export CSV Function
+
   const handleExport = () => {
-    if (!visitData || visitData.length === 0) return;
+    if (!rawResponse?.data?.length) return;
 
     const headers = [
-      "Sales Rep",
-      "Email",
-      "Customer",
-      "Phone",
-      "Department",
-      "Address",
-      "City",
+      "Date",
+      "Day",
+      "Visit Status",
+
+      "User ID",
+      "User Name",
+      "User Email",
+      "Team",
+      "Designation",
+      "State",
+
+      "Customer Name",
+      "Customer Contact",
+      "Customer Address",
+      "Customer Mobile",
+      "Customer Email",
+      "Customer Designation",
+
+      "Scheduled Time",
+      "Actual Check In",
+      "Actual Check Out",
+      "Duration",
+
       "Order",
       "Expense",
       "Remark",
-      "Location",
-      "Check OUT Image",
+      "Follow Up Date",
+      "Follow Up Time",
+
+      "Checkin Address",
+      "Checkout Address",
+      "Checkin Latitude",
+      "Checkin Longitude",
+
+      "Client Type",
+      "Signature",
     ];
 
-    const rows = visitData.map((item) => {
-      return [
-        item.salesRep,
-        item.salesRepEmail,
-        item.customer,
-        item.phone,
-        item.department,
-        item.address,
-        item.city,
-        item.order,
-        item.expense,
-        item.remark,
-        item.location,
+    const rows = [];
 
+    rawResponse.data.forEach((dayData) => {
+      dayData.visits.forEach((visit) => {
+        rows.push([
+          dayData?.date || "-",
+          dayData?.day || "-",
 
-        item.signature || "-",
-      ]
-        .map((val) => `"${val ?? "-"}"`)
-        .join(",");
+          visit?.status || "-",
+
+          visit?.user_details?.id || "-",
+          visit?.user_details?.name || "-",
+          visit?.user_details?.email || "-",
+          visit?.user_details?.team || "-",
+          visit?.user_details?.designation || "-",
+          visit?.user_details?.state || "-",
+
+          visit?.customer_details?.customer || "-",
+          visit?.customer_details?.contact || "-",
+          visit?.customer_details?.address || "-",
+          visit?.customer_details?.mobile || "-",
+          visit?.customer_details?.email || "-",
+          visit?.customer_details?.designation || "-",
+
+          visit?.schedule_and_time?.scheduled || "-",
+          visit?.schedule_and_time?.actual || "-",
+          visit?.schedule_and_time?.actual_out || "-",
+          visit?.schedule_and_time?.duration || "-",
+
+          visit?.outcomes?.order || 0,
+          visit?.outcomes?.expense || 0,
+          visit?.outcomes?.remark || "-",
+          visit?.outcomes?.follow_up_date || "-",
+          visit?.outcomes?.follow_up_time || "-",
+
+          visit?.location?.checkin_address || "-",
+          visit?.location?.checkout_address || "-",
+          visit?.location?.checkin_lat || "-",
+          visit?.location?.checkin_lng || "-",
+
+          visit?.client_type || "-",
+          visit?.signature || "-",
+        ]);
+      });
     });
 
-    const csv = headers.join(",") + "\n" + rows.join("\n");
+    const csvContent = [
+      headers.join(","),
 
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = window.URL.createObjectURL(blob);
+      ...rows.map((row) =>
+        row
+          .map((cell) => `"${String(cell).replace(/"/g, '""')}"`)
+          .join(",")
+      ),
+    ].join("\n");
 
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "visit-logs.csv";
-    a.click();
+    const blob = new Blob([csvContent], {
+      type: "text/csv;charset=utf-8;",
+    });
+
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "visit-report.csv");
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
+
+
   if (loading) return <div className="p-8 text-center">Loading...</div>;
 
   return (
@@ -985,17 +1054,17 @@ const Visit = () => {
                       </span>
                     </div>
                   </div>
-                   <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-                        <h4 className="text-xs font-bold text-purple-600 uppercase mb-3">
-                           Images
-                        </h4>
+                  <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+                    <h4 className="text-xs font-bold text-purple-600 uppercase mb-3">
+                      Images
+                    </h4>
 
-                        <div className="space-y-2 text-sm">
-                          <div>
-                            {renderImageLink(item.signature, "Check OUT image")}
-                          </div>
-                        </div>
+                    <div className="space-y-2 text-sm">
+                      <div>
+                        {renderImageLink(item.signature, "Check OUT image")}
                       </div>
+                    </div>
+                  </div>
                 </div>
 
 

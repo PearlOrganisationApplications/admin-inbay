@@ -311,6 +311,7 @@ const Dailyreports = () => {
   const [showWeeklyPopup, setShowWeeklyPopup] = useState(false);
   const [weeklyStartDate, setWeeklyStartDate] = useState("");
   const [weeklyEndDate, setWeeklyEndDate] = useState("");
+  const [rawResponse, setRawResponse] = useState(null);
   const handleMonthlyApply = (month, year) => {
     setSelectedMonth(month);
     setSelectedYear(year);
@@ -345,7 +346,7 @@ const Dailyreports = () => {
     setCurrentPage(1);
   };
 
-  const TOKEN = "223|Hj1Dp9PBFlDm0e8QYtSL8QazEoscNOYFVvbZ8O9hc08d388f";
+
 
   const [selectedDay, setSelectedDay] = useState(
     today.getDate()
@@ -408,15 +409,17 @@ const Dailyreports = () => {
       setLoading(true);
 
       try {
-        const response = await fetch(getApiUrl(), {
-          method: "GET",
+         const token = localStorage.getItem("token");
+
+        const res = await fetch(getApiUrl(), {
           headers: {
-            Authorization: `Bearer ${TOKEN}`,
+            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         });
 
-        const result = await response.json();
+        const result = await res.json();
+        setRawResponse(result); // Store raw response for debugging
 
         if (result.success) {
           const formattedEmployees = result.data.flatMap((day) =>
@@ -474,6 +477,10 @@ const Dailyreports = () => {
     return unique;
 
   }, [data]);
+
+
+
+
   const handleEmployeeSelect = (employeeName) => {
 
     setSelectedEmployees((prev) => {
@@ -525,141 +532,102 @@ const Dailyreports = () => {
   );
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
 
+
+
   const handleExport = () => {
-    if (data.length === 0) return;
+    if (!rawResponse?.data?.length) return;
 
-    const formatHeader = (key) =>
-      key
-        .replace(/_/g, " ")
-        .replace(/([A-Z])/g, " $1")
-        .replace(/\s+/g, " ")
-        .trim()
-        .replace(/^./, (str) => str.toUpperCase());
+    const headers = [
+      "Date",
+      "Day",
 
-    const headersArray = [
-      "date",
-      "day",
-      "state",
-      "team_name",
-      "staff_name",
-      "reporting_to",
-      "designation",
-      "hq",
-      "attendance",
-      "start_time",
-      "end_time",
-      "duration",
-      "start_km",
-      "end_km",
-      "total_km",
-      "total_km_covered_gps",
-      "start_location",
-      "end_location",
-      "farmer_meeting",
-      "field_visit",
-      "remarks",
-      "morning_remark",
-      "evening_remark",
-      "visit_schedule",
-      "visit_complete",
-      "selfie_in",
-      "selfie_out",
-      "speedometer_in",
-      "speedometer_out",
-      "signature_out"
+      "Employee Name",
+      "Designation",
+      "Reporting To",
+      "HQ",
+      "Status",
+      "Present",
+
+      "Scheduled Time",
+      "Check In",
+      "Check Out",
+      "Total Hours",
+
+      "GPS KM",
+      "Start Location",
+      "End Location",
+
+      "Farmer Meeting",
+      "Field Visit",
+      "Visit Schedule",
+      "Visit Complete",
+
+      "Morning Remark",
+      "Evening Remark",
+      "General Remark",
     ];
 
-    const headers = headersArray.map(formatHeader).join(",");
+    const rows = [];
 
-    const rows = data.map((emp) => {
+    rawResponse.data.forEach((dayData) => {
+      dayData.employees.forEach((emp) => {
+        rows.push([
+          emp?.date || dayData?.date || "-",
+          emp?.day || dayData?.day || "-",
 
-      // ODOMETER SPLIT
-      const odometer =
-        emp?.travel_details?.odometer?.split("→") || [];
+       
+          emp?.name || "-",
+          emp?.designation || "-",
+          emp?.reporting_to || "-",
+          emp?.hq || "-",
+          emp?.status || "-",
+          emp?.present ? "Yes" : "No",
 
-      const startKm = odometer[0]?.trim() || "-";
-      const endKm = odometer[1]?.trim() || "-";
+          emp?.time_tracking?.scheduled || "-",
+          emp?.time_tracking?.check_in || "-",
+          emp?.time_tracking?.check_out || "-",
+          emp?.time_tracking?.total_hours || "-",
 
-      // ROUTE SPLIT
-      const route =
-        emp?.travel_details?.route?.split("→") || [];
+          emp?.travel_details?.gps_km || "-",
+          emp?.travel_details?.start_location || "-",
+          emp?.travel_details?.end_location || "-",
 
-      const startLocation = route[0]?.trim() || "-";
-      const endLocation = route[1]?.trim() || "-";
+          emp?.visit_details?.farmer_meeting ?? "-",
+          emp?.visit_details?.field_visit ?? "-",
+          emp?.visit_details?.visit_schedule ?? "-",
+          emp?.visit_details?.visit_complete ?? "-",
 
-      // SCHEDULE SPLIT
-      const schedule =
-        emp?.time_and_visits?.scheduled?.split("-") || [];
-
-      const startTime = schedule[0]?.trim() || "-";
-      const endTime = schedule[1]?.trim() || "-";
-
-      const row = [
-        emp?.date || "-",
-        emp?.day || "-",
-        emp?.state || "-",
-        emp?.team || "-",
-        emp?.name || "-",
-        emp?.reporting_to || "-",
-        emp?.designation || "-",
-
-        // HQ (not available in API)
-        emp?.hq || "-",
-
-        emp?.status || "-",
-
-        startTime,
-        endTime,
-
-        emp?.time_and_visits?.total_hours || "-",
-
-        startKm,
-        endKm,
-
-        emp?.travel_details?.total_distance || "-",
-        emp?.travel_details?.gps_distance || "-",
-
-        startLocation,
-        endLocation,
-
-        // Farmer Meeting (not available)
-        emp?.farmer_meeting || "-",
-
-        emp?.time_and_visits?.visits_done || 0,
-
-        emp?.remarks?.general || "-",
-        emp?.remarks?.morning || "-",
-        emp?.remarks?.evening || "-",
-
-        emp?.time_and_visits?.scheduled || "-",
-
-        `${emp?.time_and_visits?.visits_done || 0} / ${emp?.time_and_visits?.visits_total || 0
-        }`,
-
-        emp?.attendance_images?.selfie_photo_in || "-",
-        emp?.attendance_images?.selfie_photo_out || "-",
-
-        emp?.attendance_images?.speedometer_photo_in || "-",
-        emp?.attendance_images?.speedometer_photo_out || "-",
-
-        emp?.attendance_images?.signature_out || "-"
-      ];
-
-      return row.map((val) => `"${val}"`).join(",");
+          emp?.remarks?.morning || "-",
+          emp?.remarks?.evening || "-",
+          emp?.remarks?.general || "-",
+        ]);
+      });
     });
 
-    const csv = headers + "\n" + rows.join("\n");
+    const csvContent = [
+      headers.join(","),
 
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = window.URL.createObjectURL(blob);
+      ...rows.map((row) =>
+        row
+          .map((cell) => `"${String(cell).replace(/"/g, '""')}"`)
+          .join(",")
+      ),
+    ].join("\n");
 
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "daily-report.csv";
-    a.click();
+    const blob = new Blob([csvContent], {
+      type: "text/csv;charset=utf-8;",
+    });
+
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "daily-report.csv");
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
-
-
 
   const totalDays = new Date(
     selectedYear,
@@ -891,15 +859,15 @@ const Dailyreports = () => {
                   <div className="space-y-2.5 text-sm text-gray-800">
                     <div className="flex justify-between">
                       <span>Scheduled Time</span>
-                      <span className="font-semibold">{item.time_and_visits.scheduled}</span>
+                      <span className="font-semibold">{item.time_tracking?.scheduled}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Visits</span>
-                      <span className="font-semibold">{item.time_and_visits.visits_done} / {item.time_and_visits.visits_total}</span>
+                      <span className="font-semibold">{item.time_tracking?.visits_done} / {item.time_tracking?.visits_total}</span>
                     </div>
                     <div className="flex justify-between pt-2 border-t border-gray-100">
                       <span>Total Hours</span>
-                      <span className="bg-purple-100 text-[#8b2cf5] px-2 py-0.5 rounded font-bold">{item.time_and_visits.total_hours}</span>
+                      <span className="bg-purple-100 text-[#8b2cf5] px-2 py-0.5 rounded font-bold">{item.time_tracking?.total_hours}</span>
                     </div>
                   </div>
                 </div>
