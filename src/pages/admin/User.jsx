@@ -31,6 +31,7 @@ const User = () => {
     email: "",
     password: "",
     per_km_rate: "",
+    hq: ""
   });
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
   const [selectedUser, setSelectedUser] = useState(null);
@@ -378,6 +379,9 @@ const User = () => {
                       <th className="p-4 font-semibold uppercase tracking-wider text-xs">
                         Role
                       </th>
+                       <th className="p-4 font-semibold uppercase tracking-wider text-xs">
+                        Headquarters
+                      </th>
                       <th className="p-4 font-semibold uppercase tracking-wider text-xs">
                         Rate (Per KM)
                       </th>
@@ -409,6 +413,11 @@ const User = () => {
                             {user.role}
                           </span>
                         </td>
+                        <td className="p-4">
+                          <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-md text-xs font-medium border border-gray-200">
+                            {user.hq || "N/A"}
+                          </span>
+                        </td>
                         <td className="p-4 text-gray-500">
                           ₹{user.per_km_rate || "0.00"}
                         </td>
@@ -434,11 +443,10 @@ const User = () => {
                             onClick={() =>
                               toggleUserStatus(user.id, Number(user.is_active))
                             }
-                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm border flex items-center gap-1 ${
-                              Number(user.is_active) === 1
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm border flex items-center gap-1 ${Number(user.is_active) === 1
                                 ? "bg-red-50 text-red-600 border-red-200 hover:bg-red-600 hover:text-white"
                                 : "bg-green-50 text-green-600 border-green-200 hover:bg-green-600 hover:text-white"
-                            }`}
+                              }`}
                           >
                             {Number(user.is_active) === 1 ? (
                               <>
@@ -495,11 +503,10 @@ const User = () => {
                         onClick={() =>
                           toggleUserStatus(user.id, Number(user.is_active))
                         }
-                        className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg font-semibold transition-all duration-300 shadow-sm text-sm border ${
-                          Number(user.is_active) === 1
+                        className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg font-semibold transition-all duration-300 shadow-sm text-sm border ${Number(user.is_active) === 1
                             ? "bg-red-50 text-red-600 border-red-200 hover:bg-red-600 hover:text-white"
                             : "bg-green-50 text-green-600 border-green-200 hover:bg-green-600 hover:text-white"
-                        }`}
+                          }`}
                       >
                         {Number(user.is_active) === 1 ? "Inactive" : "Active"}
                       </button>
@@ -589,84 +596,83 @@ const User = () => {
                 </div>
               </div>
 
-          <div className="grid grid-cols-2 gap-4 pt-4 border-t">
-  <div>
-    <p className="text-gray-500 text-xs">User ID</p>
-    <p className="font-semibold text-gray-800">
-      {selectedUser.id}
-    </p>
-  </div>
+              <div className="grid grid-cols-2 gap-4 pt-4 border-t">
+                <div>
+                  <p className="text-gray-500 text-xs">User ID</p>
+                  <p className="font-semibold text-gray-800">
+                    {selectedUser.id}
+                  </p>
+                </div>
 
-  <div>
-    <p className="text-gray-500 text-xs">Manager ID</p>
-    <p className="font-semibold text-gray-800">
-      {selectedUser.manager_id || "N/A"}
-    </p>
-  </div>
+                <div>
+                  <p className="text-gray-500 text-xs">Manager ID</p>
+                  <p className="font-semibold text-gray-800">
+                    {selectedUser.manager_id || "N/A"}
+                  </p>
+                </div>
 
-  <div>
-    <p className="text-gray-500 text-xs">Role</p>
-    <p className="font-semibold text-gray-800">
-      {selectedUser.role}
-    </p>
-  </div>
+                <div>
+                  <p className="text-gray-500 text-xs">Role</p>
+                  <p className="font-semibold text-gray-800">
+                    {selectedUser.role}
+                  </p>
+                </div>
 
-  <div>
-    <p className="text-gray-500 text-xs">Status</p>
-    <span
-      className={`px-2 py-1 rounded-full text-xs font-bold ${
-        selectedUser.is_active === 1
-          ? "bg-green-100 text-green-700"
-          : "bg-red-100 text-red-700"
-      }`}
-    >
-      {selectedUser.is_active === 1 ? "Active" : "Inactive"}
-    </span>
-  </div>
+                <div>
+                  <p className="text-gray-500 text-xs">Status</p>
+                  <span
+                    className={`px-2 py-1 rounded-full text-xs font-bold ${selectedUser.is_active === 1
+                        ? "bg-green-100 text-green-700"
+                        : "bg-red-100 text-red-700"
+                      }`}
+                  >
+                    {selectedUser.is_active === 1 ? "Active" : "Inactive"}
+                  </span>
+                </div>
 
-  <div>
-    <p className="text-gray-500 text-xs">Rate</p>
-    <p className="font-semibold text-gray-800">
-      ₹{selectedUser.per_km_rate}
-    </p>
-  </div>
+                <div>
+                  <p className="text-gray-500 text-xs">Rate</p>
+                  <p className="font-semibold text-gray-800">
+                    ₹{selectedUser.per_km_rate}
+                  </p>
+                </div>
 
-  <div>
-    <p className="text-gray-500 text-xs">Designation</p>
-    <p className="font-semibold text-gray-800">
-      {selectedUser.designation || "N/A"}
-    </p>
-  </div>
+                <div>
+                  <p className="text-gray-500 text-xs">Designation</p>
+                  <p className="font-semibold text-gray-800">
+                    {selectedUser.designation || "N/A"}
+                  </p>
+                </div>
 
-  <div>
-    <p className="text-gray-500 text-xs">Team</p>
-    <p className="font-semibold text-gray-800">
-      {selectedUser.team || "N/A"}
-    </p>
-  </div>
+                <div>
+                  <p className="text-gray-500 text-xs">Team</p>
+                  <p className="font-semibold text-gray-800">
+                    {selectedUser.team || "N/A"}
+                  </p>
+                </div>
 
-  <div>
-    <p className="text-gray-500 text-xs">State</p>
-    <p className="font-semibold text-gray-800">
-      {selectedUser.state || "N/A"}
-    </p>
-  </div>
+                <div>
+                  <p className="text-gray-500 text-xs">State</p>
+                  <p className="font-semibold text-gray-800">
+                    {selectedUser.state || "N/A"}
+                  </p>
+                </div>
 
-  <div>
-    <p className="text-gray-500 text-xs">Created At</p>
-    <p className="font-semibold text-gray-800">
-      {new Date(selectedUser.created_at).toLocaleString()}
-    </p>
-  </div>
+                <div>
+                  <p className="text-gray-500 text-xs">Created At</p>
+                  <p className="font-semibold text-gray-800">
+                    {new Date(selectedUser.created_at).toLocaleString()}
+                  </p>
+                </div>
 
-  <div>
-    <p className="text-gray-500 text-xs">Updated At</p>
-    <p className="font-semibold text-gray-800">
-      {new Date(selectedUser.updated_at).toLocaleString()}
-    </p>
-  </div>
-</div>
-</div>
+                <div>
+                  <p className="text-gray-500 text-xs">Updated At</p>
+                  <p className="font-semibold text-gray-800">
+                    {new Date(selectedUser.updated_at).toLocaleString()}
+                  </p>
+                </div>
+              </div>
+            </div>
 
             {/* Footer */}
             <div className="px-6 py-4 border-t">
@@ -737,6 +743,21 @@ const User = () => {
                   value={formData.password}
                   onChange={(e) =>
                     setFormData({ ...formData, password: e.target.value })
+                  }
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">
+                  Headquarters
+                </label>
+                <input
+                  required
+                  type="text"
+                  placeholder="Enter headquarters"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none transition-all"
+                  value={formData.hq}
+                  onChange={(e) =>
+                    setFormData({ ...formData, hq: e.target.value })
                   }
                 />
               </div>
