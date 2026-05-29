@@ -31,6 +31,7 @@ const Manager = () => {
     name: "",
     email: "",
     password: "",
+    hq: "",
   });
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
   const [viewModalOpen, setViewModalOpen] = useState(false);
@@ -113,7 +114,7 @@ const Manager = () => {
           `Manager ${newStatus === 1 ? "Activated" : "Deactivated"} successfully!`,
           "success",
         );
-        fetchManagers(); 
+        fetchManagers();
       } else {
         showToast("Failed to update manager status", "error");
       }
@@ -172,7 +173,7 @@ const Manager = () => {
         m.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         m.email?.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesRole = roleFilter === "" || m.role === roleFilter;
-      
+
       const isActive = Number(m.is_active) === 1;
       const matchesStatus =
         statusFilter === "" ||
@@ -352,6 +353,7 @@ const Manager = () => {
                       <th className="p-4 font-semibold uppercase tracking-wider text-xs">Manager</th>
                       <th className="p-4 font-semibold uppercase tracking-wider text-xs">Email</th>
                       <th className="p-4 font-semibold uppercase tracking-wider text-xs">Role</th>
+                      <th className="p-4 font-semibold uppercase tracking-wider text-xs"> Headquarters</th>
                       <th className="p-4 font-semibold uppercase tracking-wider text-xs">Status</th>
                       <th className="p-4 font-semibold uppercase tracking-wider text-xs text-center">Action</th>
                     </tr>
@@ -371,6 +373,9 @@ const Manager = () => {
                             {m.role || "Manager"}
                           </span>
                         </td>
+                        <td className="p-4 text-gray-600 font-medium text-center">
+                          {m.hq || "N/A"}
+                        </td>
                         <td className="p-4">
                           <span className={`text-xs px-3 py-1 rounded-full font-bold border ${Number(m.is_active) === 1 ? "bg-green-50 text-green-700 border-green-200" : "bg-red-50 text-red-700 border-red-200"}`}>
                             {Number(m.is_active) === 1 ? "Active" : "Inactive"}
@@ -385,11 +390,10 @@ const Manager = () => {
                           </button>
                           <button
                             onClick={() => toggleManagerStatus(m.id, Number(m.is_active))}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm border flex items-center gap-1 ${
-                              Number(m.is_active) === 1
-                                ? "bg-red-50 text-red-600 border-red-200 hover:bg-red-600 hover:text-white"
-                                : "bg-green-50 text-green-600 border-green-200 hover:bg-green-600 hover:text-white"
-                            }`}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm border flex items-center gap-1 ${Number(m.is_active) === 1
+                              ? "bg-red-50 text-red-600 border-red-200 hover:bg-red-600 hover:text-white"
+                              : "bg-green-50 text-green-600 border-green-200 hover:bg-green-600 hover:text-white"
+                              }`}
                           >
                             {Number(m.is_active) === 1 ? <><XCircle size={14} /> Deactivate</> : <><CheckCircle size={14} /> Activate</>}
                           </button>
@@ -429,9 +433,8 @@ const Manager = () => {
                       </button>
                       <button
                         onClick={() => toggleManagerStatus(m.id, Number(m.is_active))}
-                        className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg font-semibold text-sm border ${
-                          Number(m.is_active) === 1 ? "bg-red-50 text-red-600 border-red-200" : "bg-green-50 text-green-600 border-green-200"
-                        }`}
+                        className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg font-semibold text-sm border ${Number(m.is_active) === 1 ? "bg-red-50 text-red-600 border-red-200" : "bg-green-50 text-green-600 border-green-200"
+                          }`}
                       >
                         {Number(m.is_active) === 1 ? "Deactivate" : "Activate"}
                       </button>
@@ -444,16 +447,63 @@ const Manager = () => {
         </div>
       </div>
 
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between mt-6 bg-white px-4 py-3 rounded-xl border border-gray-200 shadow-sm">
+
+          <button
+            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border ${currentPage === 1
+              ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+              : "bg-white text-gray-700 hover:bg-gray-50"
+              }`}
+          >
+            <ChevronLeft size={16} />
+            Previous
+          </button>
+
+          <div className="flex items-center gap-2">
+            {Array.from({ length: totalPages }, (_, i) => (
+              <button
+                key={i + 1}
+                onClick={() => setCurrentPage(i + 1)}
+                className={`w-9 h-9 rounded-lg text-sm font-semibold transition-all ${currentPage === i + 1
+                  ? "bg-indigo-600 text-white"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
+              >
+                {i + 1}
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={() =>
+              setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+            }
+            disabled={currentPage === totalPages}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border ${currentPage === totalPages
+              ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+              : "bg-white text-gray-700 hover:bg-gray-50"
+              }`}
+          >
+            Next
+            <ChevronRight size={16} />
+          </button>
+        </div>
+      )}
+
       {/* NEW UPDATED View Manager Modal - MATCHING SCREENSHOT */}
       {viewModalOpen && displayUser && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="w-full max-w-md rounded-2xl overflow-hidden shadow-2xl bg-white">
-            
+
             {/* Header Section */}
             <div className="p-5 border-b flex justify-between items-center bg-[#F9F5FF]">
               <h2 className="text-xl font-bold text-[#101828]">User Details</h2>
-              <button 
-                onClick={() => setViewModalOpen(false)} 
+              <button
+                onClick={() => setViewModalOpen(false)}
                 className="text-gray-400 hover:text-gray-600"
               >
                 <X size={24} />
@@ -500,11 +550,10 @@ const Manager = () => {
                 </div>
                 <div>
                   <p className="text-[#667085] text-sm mb-1">Status</p>
-                  <span className={`inline-block px-3 py-1 rounded-full text-sm font-bold ${
-                    displayUser.is_active 
-                    ? "bg-[#ECFDF3] text-[#027A48]" 
+                  <span className={`inline-block px-3 py-1 rounded-full text-sm font-bold ${displayUser.is_active
+                    ? "bg-[#ECFDF3] text-[#027A48]"
                     : "bg-[#FEF3F2] text-[#B42318]"
-                  }`}>
+                    }`}>
                     {displayUser.is_active ? "Active" : "Inactive"}
                   </span>
                 </div>
@@ -566,6 +615,10 @@ const Manager = () => {
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">Password</label>
                 <input required type="password" placeholder="••••••••" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Headquarters</label>
+                <input required type="text" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={formData.hq} onChange={(e) => setFormData({ ...formData, hq: e.target.value })} />
               </div>
               <div className="pt-4 flex gap-3">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-600 rounded-lg font-medium hover:bg-gray-50">Cancel</button>
