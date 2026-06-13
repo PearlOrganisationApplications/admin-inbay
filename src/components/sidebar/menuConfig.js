@@ -9,6 +9,7 @@ import {
   FaUserTie,
   FaMoneyBill,
   FaMapMarkerAlt,
+  FaHardHat 
 } from "react-icons/fa";
 
 export const menuConfig = {
