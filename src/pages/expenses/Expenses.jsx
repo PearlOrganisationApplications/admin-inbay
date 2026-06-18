@@ -383,7 +383,7 @@ const Expenses = () => {
     window.URL.revokeObjectURL(url);
   };
 
-  console.log(filteredEmployeeOptions);
+
 
   if (loading) return (
     <div className="flex h-screen items-center justify-center bg-gray-50">

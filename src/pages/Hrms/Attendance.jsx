@@ -405,6 +405,7 @@ const Attendance = () => {
   const totalEmployees = summary.total_employees;
   const totalPresent = summary.total_present;
   const totalAbsent = summary.total_absent;
+  // const totalAbsent =totalEmployees-totalPresent;
 
   // Pagination Logic
   const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE) || 1;
@@ -420,7 +421,21 @@ const Attendance = () => {
 
   // Export CSV
   const handleExport = () => {
-    if (!rawResponse?.data?.length) {
+     console.log("Raw Response", rawResponse);
+   
+
+    const exportData = rawResponse?.data
+      ? rawResponse.data
+      : rawResponse?.employees
+        ? [{
+          date: rawResponse.date,
+          day: rawResponse.day,
+          summary: rawResponse.summary,
+          employees: rawResponse.employees,
+        }]
+        : [];
+
+    if (!exportData.length) {
       return alert("No data to export!");
     }
 
@@ -465,7 +480,7 @@ const Attendance = () => {
 
     const rows = [];
 
-    rawResponse.data.forEach((dayData) => {
+  exportData.forEach((dayData) => {
       // AGAR EMPLOYEES EMPTY HAIN
       if (!dayData.employees || dayData.employees.length === 0) {
         rows.push(
@@ -825,7 +840,7 @@ const Attendance = () => {
                   onChange={(e) => setYear(Number(e.target.value))}
                   className="border border-gray-300 px-4 py-2.5 rounded-xl text-sm bg-white shadow-sm"
                 >
-                  {[2024, 2025, 2026, 2027].map((yr) => (
+                  {[2024, 2025, 2026, 2027, 2028, 2029, 2030].map((yr) => (
                     <option key={yr} value={yr}>
                       {yr}
                     </option>

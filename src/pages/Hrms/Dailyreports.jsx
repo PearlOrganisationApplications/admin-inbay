@@ -456,7 +456,8 @@ const Dailyreports = () => {
     };
 
     fetchReport();
-  }, [reportType, selectedDay, selectedMonth, selectedYear, customStartDate, customEndDate]);
+  }, [reportType, selectedDay, selectedMonth, selectedYear, customStartDate, customEndDate, weeklyStartDate,
+  weeklyEndDate]);
 
   const uniqueEmployees = useMemo(() => {
 

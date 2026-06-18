@@ -474,7 +474,7 @@ const Visit = () => {
     };
 
     fetchData();
-  }, [selectedDay, selectedMonth, selectedYear, reportType]);
+  }, [selectedDay, selectedMonth, selectedYear, reportType,weeklyEndDate,weeklyStartDate,customEndDate,customStartDate]);
 
   // Logic for Pagination
   const indexOfLastItem = currentPage * itemsPerPage;
