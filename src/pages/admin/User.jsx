@@ -37,6 +37,10 @@ const User = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+  const [resetPassword, setResetPassword] = useState("");
+  const [selectedUserId, setSelectedUserId] = useState(null);
+
   useEffect(() => {
     fetchUsers();
   }, []);
@@ -88,6 +92,44 @@ const User = () => {
       alert("Error");
     }
   };
+
+
+  // reset user password
+const handleResetPassword = async () => {
+  try {
+     const token = localStorage.getItem("token");
+
+    const res = await fetch(
+      "https://test.pearl-developer.com/Inbay_Innovations/public/api/admin/reset-password",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          user_id: selectedUserId,
+          password: resetPassword,
+        }),
+      }
+    );
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      showToast(data.message || "Something went wrong", "error");
+      return;
+    }
+
+    showToast(data.message, "success");   // ✅ ONLY THIS
+
+    setIsResetModalOpen(false);
+    setResetPassword("");
+  } catch (err) {
+    showToast(err.message || "Error", "error");
+  }
+};
 
   const toggleUserStatus = async (userId, currentIsActive) => {
     try {
@@ -366,103 +408,117 @@ const User = () => {
             </div>
           ) : (
             <>
-              <div className="hidden md:block bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50 text-left text-gray-600 border-b border-gray-200">
-                    <tr>
-                      <th className="p-4 font-semibold uppercase tracking-wider text-xs">
-                        User
-                      </th>
-                      <th className="p-4 font-semibold uppercase tracking-wider text-xs">
-                        Email
-                      </th>
-                      <th className="p-4 font-semibold uppercase tracking-wider text-xs">
-                        Role
-                      </th>
-                       <th className="p-4 font-semibold uppercase tracking-wider text-xs">
-                        Headquarters
-                      </th>
-                      <th className="p-4 font-semibold uppercase tracking-wider text-xs">
-                        Rate (Per KM)
-                      </th>
-                      <th className="p-4 font-semibold uppercase tracking-wider text-xs">
-                        Status
-                      </th>
-                      <th className="p-4 font-semibold uppercase tracking-wider text-xs text-center">
-                        Action
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {paginatedUsers.map((user) => (
-                      <tr
-                        key={user.id}
-                        className="hover:bg-purple-50/50 transition-colors"
-                      >
-                        <td className="p-4 flex items-center gap-3">
-                          <div className="h-10 w-10 rounded-full border border-gray-200 shadow-sm bg-gray-100 flex items-center justify-center text-gray-400 font-bold">
-                            {user.name.charAt(0)}
-                          </div>
-                          <span className="font-bold text-gray-800">
-                            {user.name}
-                          </span>
-                        </td>
-                        <td className="p-4 text-gray-500">{user.email}</td>
-                        <td className="p-4">
-                          <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-md text-xs font-medium border border-gray-200">
-                            {user.role}
-                          </span>
-                        </td>
-                        <td className="p-4">
-                          <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-md text-xs font-medium border border-gray-200">
-                            {user.hq || "N/A"}
-                          </span>
-                        </td>
-                        <td className="p-4 text-gray-500">
-                          ₹{user.per_km_rate || "0.00"}
-                        </td>
-                        <td className="p-4">
-                          <span
-                            className={`text-xs px-3 py-1 rounded-full font-bold border ${Number(user.is_active) === 1 ? "bg-green-50 text-green-700 border-green-200" : "bg-red-50 text-red-700 border-red-200"}`}
-                          >
-                            {Number(user.is_active) === 1
-                              ? "Active"
-                              : "Inactive"}
-                          </span>
-                        </td>
-                        <td className="p-4 text-center flex items-center justify-center gap-2">
-                          <button
-                            onClick={() => fetchSingleUser(user.id)}
-                            className="p-2 inline-flex items-center justify-center text-blue-600 bg-blue-50 rounded-full hover:bg-blue-600 hover:text-white transition-all duration-300 shadow-sm"
-                            title="View User"
-                          >
-                            <Eye size={18} />
-                          </button>
+              <div className="hidden  md:block bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                <div className="w-full overflow-x-auto">
+                  <table className="w-full  text-sm">
+                    <thead className="bg-gray-50 text-left text-gray-600 border-b border-gray-200">
+                      <tr>
+                        <th className="p-4 font-semibold uppercase tracking-wider text-xs">
+                          User
+                        </th>
+                        <th className="p-4 font-semibold uppercase tracking-wider text-xs">
+                          Email
+                        </th>
+                        <th className="p-4 font-semibold uppercase tracking-wider text-xs">
+                          Role
+                        </th>
+                        <th className="p-4 font-semibold uppercase tracking-wider text-xs">
+                          Headquarters
+                        </th>
+                        <th className="p-4 font-semibold uppercase tracking-wider text-xs">
+                          Rate (Per KM)
+                        </th>
+                        <th className="p-4 font-semibold uppercase tracking-wider text-xs">
+                          Status
+                        </th>
+                        <th className="p-4 font-semibold uppercase tracking-wider text-xs text-center">
+                          Action
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 ">
+                      {paginatedUsers.map((user) => (
+                        <tr
+                          key={user.id}
+                          className="hover:bg-purple-50/50 transition-colors"
+                        >
+                          <td className="p-2 flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-full border border-gray-200 shadow-sm bg-gray-100 flex items-center justify-center text-gray-400 font-bold">
+                              {user.name.charAt(0)}
+                            </div>
+                            <span className="font-bold text-gray-800">
+                              {user.name}
+                            </span>
+                          </td>
+                          <td className="p-4 text-gray-500">{user.email}</td>
+                          <td className="p-4">
+                            <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-md text-xs font-medium border border-gray-200">
+                              {user.role}
+                            </span>
+                          </td>
+                          <td className="p-4">
+                            <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-md text-xs font-medium border border-gray-200">
+                              {user.hq || "N/A"}
+                            </span>
+                          </td>
+                          <td className="p-4 text-gray-500">
+                            ₹{user.per_km_rate || "0.00"}
+                          </td>
+                          <td className="p-4">
+                            <span
+                              className={`text-xs px-3 py-1 rounded-full font-bold border ${Number(user.is_active) === 1 ? "bg-green-50 text-green-700 border-green-200" : "bg-red-50 text-red-700 border-red-200"}`}
+                            >
+                              {Number(user.is_active) === 1
+                                ? "Active"
+                                : "Inactive"}
+                            </span>
+                          </td>
+                          <td className="p-4 text-center flex items-center justify-center gap-2">
+                            <button
+                              onClick={() => fetchSingleUser(user.id)}
+                              className="p-2 inline-flex items-center justify-center text-blue-600 bg-blue-50 rounded-full hover:bg-blue-600 hover:text-white transition-all duration-300 shadow-sm"
+                              title="View User"
+                            >
+                              <Eye size={18} />
+                            </button>
 
-                          <button
-                            onClick={() =>
-                              toggleUserStatus(user.id, Number(user.is_active))
-                            }
-                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm border flex items-center gap-1 ${Number(user.is_active) === 1
+                            <button
+                              onClick={() =>
+                                toggleUserStatus(user.id, Number(user.is_active))
+                              }
+                              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm border flex items-center gap-1 ${Number(user.is_active) === 1
                                 ? "bg-red-50 text-red-600 border-red-200 hover:bg-red-600 hover:text-white"
                                 : "bg-green-50 text-green-600 border-green-200 hover:bg-green-600 hover:text-white"
-                              }`}
-                          >
-                            {Number(user.is_active) === 1 ? (
-                              <>
-                                <XCircle size={14} /> Inactive
-                              </>
-                            ) : (
-                              <>
-                                <CheckCircle size={14} /> Active
-                              </>
-                            )}
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                                }`}
+                            >
+                              {Number(user.is_active) === 1 ? (
+                                <>
+                                  <XCircle size={14} /> Inactive
+                                </>
+                              ) : (
+                                <>
+                                  <CheckCircle size={14} /> Active
+                                </>
+                              )}
+                            </button>
+
+                            <button
+                              onClick={() => {
+                                setSelectedUserId(user.id);
+                                setIsResetModalOpen(true);
+                              }}
+                              className="px-3 py-2 inline-flex items-center justify-center text-blue-600 bg-blue-50 rounded-full hover:bg-blue-600 hover:text-white transition-all duration-300 shadow-sm leading-none"
+                              title="Reset Password"
+                            >
+                              Reset Password
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
               </div>
               <div className="grid md:hidden gap-4">
                 {paginatedUsers.map((user) => (
@@ -504,8 +560,8 @@ const User = () => {
                           toggleUserStatus(user.id, Number(user.is_active))
                         }
                         className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg font-semibold transition-all duration-300 shadow-sm text-sm border ${Number(user.is_active) === 1
-                            ? "bg-red-50 text-red-600 border-red-200 hover:bg-red-600 hover:text-white"
-                            : "bg-green-50 text-green-600 border-green-200 hover:bg-green-600 hover:text-white"
+                          ? "bg-red-50 text-red-600 border-red-200 hover:bg-red-600 hover:text-white"
+                          : "bg-green-50 text-green-600 border-green-200 hover:bg-green-600 hover:text-white"
                           }`}
                       >
                         {Number(user.is_active) === 1 ? "Inactive" : "Active"}
@@ -622,8 +678,8 @@ const User = () => {
                   <p className="text-gray-500 text-xs">Status</p>
                   <span
                     className={`px-2 py-1 rounded-full text-xs font-bold ${selectedUser.is_active === 1
-                        ? "bg-green-100 text-green-700"
-                        : "bg-red-100 text-red-700"
+                      ? "bg-green-100 text-green-700"
+                      : "bg-red-100 text-red-700"
                       }`}
                   >
                     {selectedUser.is_active === 1 ? "Active" : "Inactive"}
@@ -794,6 +850,50 @@ const User = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {isResetModalOpen && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+
+          <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden">
+
+            {/* Header */}
+            <div className="px-6 py-4 border-b bg-purple-50 flex justify-between items-center">
+              <h2 className="font-bold text-gray-800">Reset Password</h2>
+              <button onClick={() => setIsResetModalOpen(false)}>✕</button>
+            </div>
+
+            {/* Body */}
+            <div className="p-6 space-y-4">
+              <input
+              autoComplete="off"
+                type="password"
+                placeholder="Enter new password"
+                value={resetPassword}
+                onChange={(e) => setResetPassword(e.target.value)}
+                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+              />
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 border-t flex gap-3">
+              <button
+                onClick={() => setIsResetModalOpen(false)}
+                className="flex-1 py-2 border rounded-lg"
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={handleResetPassword }
+                className="flex-1 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+              >
+                Save
+              </button>
+            </div>
+
           </div>
         </div>
       )}

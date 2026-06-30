@@ -409,7 +409,7 @@ const Dailyreports = () => {
       setLoading(true);
 
       try {
-         const token = localStorage.getItem("token");
+        const token = localStorage.getItem("token");
 
         const res = await fetch(getApiUrl(), {
           headers: {
@@ -457,7 +457,7 @@ const Dailyreports = () => {
 
     fetchReport();
   }, [reportType, selectedDay, selectedMonth, selectedYear, customStartDate, customEndDate, weeklyStartDate,
-  weeklyEndDate]);
+    weeklyEndDate]);
 
   const uniqueEmployees = useMemo(() => {
 
@@ -576,7 +576,7 @@ const Dailyreports = () => {
           emp?.date || dayData?.date || "-",
           emp?.day || dayData?.day || "-",
 
-       
+
           emp?.name || "-",
           emp?.designation || "-",
           emp?.reporting_to || "-",

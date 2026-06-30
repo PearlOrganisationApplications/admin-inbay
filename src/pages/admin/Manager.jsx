@@ -13,7 +13,7 @@ import {
   X,
   CheckCircle,
   XCircle,
-  ShieldCheck, 
+  ShieldCheck,
 } from "lucide-react";
 
 const ITEMS_PER_PAGE = 10;
@@ -36,6 +36,51 @@ const Manager = () => {
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [selectedManagerData, setSelectedManagerData] = useState(null);
+
+
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+  const [resetPassword, setResetPassword] = useState("");
+  const [selectedUserId, setSelectedUserId] = useState(null);
+
+
+
+  // reset user password
+const handleResetPassword = async () => {
+  try {
+     const token = localStorage.getItem("token");
+
+    const res = await fetch(
+      "https://test.pearl-developer.com/Inbay_Innovations/public/api/admin/reset-password",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          user_id: selectedUserId,
+          password: resetPassword,
+        }),
+      }
+    );
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      showToast(data.message || "Something went wrong", "error");
+      return;
+    }
+
+    showToast(data.message, "success");   // ✅ ONLY THIS
+
+    setIsResetModalOpen(false);
+    setResetPassword("");
+  } catch (err) {
+    showToast(err.message || "Error", "error");
+  }
+};
+
 
   useEffect(() => {
     fetchManagers();
@@ -397,6 +442,17 @@ const Manager = () => {
                           >
                             {Number(m.is_active) === 1 ? <><XCircle size={14} /> Deactivate</> : <><CheckCircle size={14} /> Activate</>}
                           </button>
+
+                          <button
+                              onClick={() => {
+                                setSelectedUserId(m.id);
+                                setIsResetModalOpen(true);
+                              }}
+                              className="px-3 py-2 inline-flex items-center justify-center text-blue-600 bg-blue-50 rounded-full hover:bg-blue-600 hover:text-white transition-all duration-300 shadow-sm leading-none"
+                              title="Reset Password"
+                            >
+                              Reset Password
+                            </button>
                         </td>
                       </tr>
                     ))}
@@ -627,6 +683,50 @@ const Manager = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+       {isResetModalOpen && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+
+          <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden">
+
+            {/* Header */}
+            <div className="px-6 py-4 border-b bg-purple-50 flex justify-between items-center">
+              <h2 className="font-bold text-gray-800">Reset Password</h2>
+              <button onClick={() => setIsResetModalOpen(false)}>✕</button>
+            </div>
+
+            {/* Body */}
+            <div className="p-6 space-y-4">
+              <input
+              autoComplete="off"
+                type="password"
+                placeholder="Enter new password"
+                value={resetPassword}
+                onChange={(e) => setResetPassword(e.target.value)}
+                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+              />
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 border-t flex gap-3">
+              <button
+                onClick={() => setIsResetModalOpen(false)}
+                className="flex-1 py-2 border rounded-lg"
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={handleResetPassword }
+                className="flex-1 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+              >
+                Save
+              </button>
+            </div>
+
           </div>
         </div>
       )}
