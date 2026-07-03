@@ -7,12 +7,12 @@ import AdminDashboard from "../pages/admin/AdminDashboard";
 // Auth
 import RoleLogin from "../pages/auth/RoleLogin";
 import NotFound from "../pages/notFound/NotFound";
-import User from "../pages/admin/User";
+import User from "../pages/admin/User/User";
 import Attendance from "../pages/Hrms/Attendance";
 import Dailyreports from "../pages/Hrms/Dailyreports";
 import Visit from "../pages/Hrms/Visit";
 import Setting from "../pages/Setting/Setting";
-import Manager from "../pages/admin/Manager";
+import Manager from "../pages/admin/Manager/Manager";
 import AssignUser from "../pages/assignuser/AssignUser";
 import Expenses from "../pages/expenses/Expenses";
 import AddClientType from "../pages/add-client-type/AddClientType";

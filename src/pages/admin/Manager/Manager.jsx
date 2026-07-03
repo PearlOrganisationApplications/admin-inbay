@@ -15,6 +15,10 @@ import {
   XCircle,
   ShieldCheck,
 } from "lucide-react";
+import { fetchManagers, handleCreateManager, handleViewManager, toggleManagerStatus } from "./managerPageApis";
+import ResetPasswordModal from "./Modals/ResetPasswordModal";
+import CreateManagerModal from "./Modals/CreateManagerModal";
+import ViewUserModal from "./Modals/ViewUserModal";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -42,165 +46,9 @@ const Manager = () => {
   const [resetPassword, setResetPassword] = useState("");
   const [selectedUserId, setSelectedUserId] = useState(null);
 
-
-
-  // reset user password
-const handleResetPassword = async () => {
-  try {
-     const token = localStorage.getItem("token");
-
-    const res = await fetch(
-      "https://test.pearl-developer.com/Inbay_Innovations/public/api/admin/reset-password",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
-        },
-        body: JSON.stringify({
-          user_id: selectedUserId,
-          password: resetPassword,
-        }),
-      }
-    );
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      showToast(data.message || "Something went wrong", "error");
-      return;
-    }
-
-    showToast(data.message, "success");   // ✅ ONLY THIS
-
-    setIsResetModalOpen(false);
-    setResetPassword("");
-  } catch (err) {
-    showToast(err.message || "Error", "error");
-  }
-};
-
-
   useEffect(() => {
-    fetchManagers();
+    fetchManagers(setManagers);
   }, []);
-
-  const handleViewManager = async (managerId) => {
-    try {
-      const token = localStorage.getItem("token");
-
-      const response = await fetch(
-        `https://test.pearl-developer.com/Inbay_Innovations/public/api/admin/manager/${managerId}/users`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      const result = await response.json();
-
-      if (response.ok) {
-        setSelectedManagerData(result.data);
-        setViewModalOpen(true);
-      } else {
-        showToast("Failed to fetch manager details", "error");
-      }
-    } catch (error) {
-      showToast("Error fetching manager details", "error");
-    }
-  };
-
-  const fetchManagers = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(
-        "https://test.pearl-developer.com/Inbay_Innovations/public/api/admin/managers",
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        },
-      );
-      const data = await response.json();
-      setManagers(Array.isArray(data) ? data : data?.data || []);
-    } catch (error) {
-      console.error("Manager API error:", error);
-    }
-  };
-
-  const toggleManagerStatus = async (managerId, currentIsActive) => {
-    try {
-      const token = localStorage.getItem("token");
-      const newStatus = currentIsActive === 1 ? 0 : 1;
-
-      const response = await fetch(
-        "https://test.pearl-developer.com/Inbay_Innovations/public/api/admin/manager-status",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            user_id: managerId,
-            is_active: newStatus,
-          }),
-        },
-      );
-
-      if (response.ok) {
-        showToast(
-          `Manager ${newStatus === 1 ? "Activated" : "Deactivated"} successfully!`,
-          "success",
-        );
-        fetchManagers();
-      } else {
-        showToast("Failed to update manager status", "error");
-      }
-    } catch (error) {
-      showToast("Error connecting to server", "error");
-    }
-  };
-
-  const handleCreateManager = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(
-        "https://test.pearl-developer.com/Inbay_Innovations/public/api/admin/create-manager",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(formData),
-        },
-      );
-
-      const result = await response.json();
-
-      if (response.ok) {
-        showToast("Manager created successfully!", "success");
-        setIsModalOpen(false);
-        setFormData({ name: "", email: "", password: "" });
-        fetchManagers();
-      } else {
-        showToast(result.message || "Failed to create manager", "error");
-      }
-    } catch (error) {
-      showToast("An error occurred. Please try again.", "error");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   const showToast = (message, type) => {
     setToast({ show: true, message, type });
@@ -428,7 +276,14 @@ const handleResetPassword = async () => {
                         </td>
                         <td className="p-4 text-center flex items-center justify-center gap-2">
                           <button
-                            onClick={() => handleViewManager(m.id)}
+                            onClick={() =>
+                              handleViewManager(
+                                m.id,
+                                setSelectedManagerData,
+                                setViewModalOpen,
+                                showToast
+                              )
+                            }
                             className="p-2 text-blue-600 bg-blue-50 rounded-full hover:bg-blue-600 hover:text-white transition-all shadow-sm"
                           >
                             <Eye size={18} />
@@ -444,15 +299,15 @@ const handleResetPassword = async () => {
                           </button>
 
                           <button
-                              onClick={() => {
-                                setSelectedUserId(m.id);
-                                setIsResetModalOpen(true);
-                              }}
-                              className="px-3 py-2 inline-flex items-center justify-center text-blue-600 bg-blue-50 rounded-full hover:bg-blue-600 hover:text-white transition-all duration-300 shadow-sm leading-none"
-                              title="Reset Password"
-                            >
-                              Reset Password
-                            </button>
+                            onClick={() => {
+                              setSelectedUserId(m.id);
+                              setIsResetModalOpen(true);
+                            }}
+                            className="px-3 py-2 inline-flex items-center justify-center text-blue-600 bg-blue-50 rounded-full hover:bg-blue-600 hover:text-white transition-all duration-300 shadow-sm leading-none"
+                            title="Reset Password"
+                          >
+                            Reset Password
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -482,13 +337,27 @@ const handleResetPassword = async () => {
                     </div>
                     <div className="pt-1 pl-2 flex gap-2">
                       <button
-                        onClick={() => handleViewManager(m.id)}
+                        onClick={() =>
+                          handleViewManager(
+                            m.id,
+                            setSelectedManagerData,
+                            setViewModalOpen,
+                            showToast
+                          )
+                        }
                         className="flex-1 flex items-center justify-center gap-2 text-blue-600 bg-blue-50 py-2 rounded-lg font-semibold text-sm transition-all"
                       >
                         <Eye size={18} /> View
                       </button>
                       <button
-                        onClick={() => toggleManagerStatus(m.id, Number(m.is_active))}
+                        onClick={() =>
+                          toggleManagerStatus(
+                            m.id,
+                            m.is_active,
+                            fetchManagers,
+                            showToast
+                          )
+                        }
                         className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg font-semibold text-sm border ${Number(m.is_active) === 1 ? "bg-red-50 text-red-600 border-red-200" : "bg-green-50 text-green-600 border-green-200"
                           }`}
                       >
@@ -551,185 +420,39 @@ const handleResetPassword = async () => {
       )}
 
       {/* NEW UPDATED View Manager Modal - MATCHING SCREENSHOT */}
-      {viewModalOpen && displayUser && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-2xl overflow-hidden shadow-2xl bg-white">
-
-            {/* Header Section */}
-            <div className="p-5 border-b flex justify-between items-center bg-[#F9F5FF]">
-              <h2 className="text-xl font-bold text-[#101828]">User Details</h2>
-              <button
-                onClick={() => setViewModalOpen(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X size={24} />
-              </button>
-            </div>
-
-            <div className="p-6">
-              {/* Profile Row */}
-              <div className="flex items-center gap-4 mb-6">
-                <div className="w-20 h-20 rounded-full border-2 border-gray-200 overflow-hidden">
-                  <img
-                    src={`https://test.pearl-developer.com/Inbay_Innovations/public/${displayUser.profile_image}`}
-                    alt="profile"
-                    className="w-full h-full object-cover"
-                    onError={(e) => { e.target.src = "https://via.placeholder.com/150"; }}
-                  />
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold text-gray-900 uppercase tracking-tight">
-                    {displayUser.name}
-                  </h3>
-                  <p className="text-sm text-gray-500 font-medium">
-                    {displayUser.email}
-                  </p>
-                </div>
-              </div>
-
-              {/* Divider */}
-              <hr className="border-gray-200 mb-6" />
-
-              {/* Details Grid */}
-              <div className="grid grid-cols-2 gap-x-8 gap-y-6 mb-8">
-                <div>
-                  <p className="text-[#667085] text-sm mb-1">User ID</p>
-                  <p className="font-bold text-[#101828] text-lg">{displayUser.id}</p>
-                </div>
-                <div>
-                  <p className="text-[#667085] text-sm mb-1">Manager ID</p>
-                  <p className="font-bold text-[#101828] text-lg">{selectedManagerData.manager_id}</p>
-                </div>
-                <div>
-                  <p className="text-[#667085] text-sm mb-1">Role</p>
-                  <p className="font-bold text-[#101828] text-lg">{displayUser.role}</p>
-                </div>
-                <div>
-                  <p className="text-[#667085] text-sm mb-1">Status</p>
-                  <span className={`inline-block px-3 py-1 rounded-full text-sm font-bold ${displayUser.is_active
-                    ? "bg-[#ECFDF3] text-[#027A48]"
-                    : "bg-[#FEF3F2] text-[#B42318]"
-                    }`}>
-                    {displayUser.is_active ? "Active" : "Inactive"}
-                  </span>
-                </div>
-                <div>
-                  <p className="text-[#667085] text-sm mb-1">Rate</p>
-                  <p className="font-bold text-[#101828] text-lg">₹{displayUser.per_km_rate}</p>
-                </div>
-                <div>
-                  <p className="text-[#667085] text-sm mb-1">Designation</p>
-                  <p className="font-bold text-[#101828] text-lg">{displayUser.designation || "N/A"}</p>
-                </div>
-                <div>
-                  <p className="text-[#667085] text-sm mb-1">Team</p>
-                  <p className="font-bold text-[#101828] text-lg">{displayUser.team || "N/A"}</p>
-                </div>
-                <div>
-                  <p className="text-[#667085] text-sm mb-1">State</p>
-                  <p className="font-bold text-[#101828] text-lg">{displayUser.state || "N/A"}</p>
-                </div>
-                <div>
-                  <p className="text-[#667085] text-sm mb-1">Created At</p>
-                  <p className="font-bold text-[#475467] text-sm">{displayUser.created_at}</p>
-                </div>
-                <div>
-                  <p className="text-[#667085] text-sm mb-1">Updated At</p>
-                  <p className="font-bold text-[#475467] text-sm">{displayUser.updated_at}</p>
-                </div>
-              </div>
-
-              {/* Close Button */}
-              <button
-                onClick={() => setViewModalOpen(false)}
-                className="w-full py-4 rounded-xl bg-[#9333ea] text-white font-bold text-lg hover:bg-[#7e22ce] transition-colors shadow-lg"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {viewModalOpen && displayUser &&
+        <ViewUserModal
+          isOpen={viewModalOpen}
+          displayUser={displayUser}
+          selectedManagerData={selectedManagerData}
+          setViewModalOpen={setViewModalOpen}
+        />
+      }
 
       {/* Create Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all">
-            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-indigo-50">
-              <h2 className="text-xl font-bold text-gray-800">Create New Manager</h2>
-              <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600"><X size={24} /></button>
-            </div>
-            <form onSubmit={handleCreateManager} className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Full Name</label>
-                <input required type="text" placeholder="Enter name" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Manager Email</label>
-                <input required type="email" placeholder="manager@example.com" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Password</label>
-                <input required type="password" placeholder="••••••••" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Headquarters</label>
-                <input required type="text" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={formData.hq} onChange={(e) => setFormData({ ...formData, hq: e.target.value })} />
-              </div>
-              <div className="pt-4 flex gap-3">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-600 rounded-lg font-medium hover:bg-gray-50">Cancel</button>
-                <button type="submit" disabled={isSubmitting} className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 shadow-md disabled:opacity-50">
-                  {isSubmitting ? "Creating..." : "Create Manager"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {isModalOpen &&
+        <CreateManagerModal
+          isOpen={isModalOpen}
+          setIsModalOpen={setIsModalOpen}
+          formData={formData}
+          setFormData={setFormData}
+          isSubmitting={isSubmitting}
+          setIsSubmitting={setIsSubmitting}
+          showToast={showToast}
+          fetchManagers={fetchManagers}
+        />
+      }
 
-       {isResetModalOpen && (
-        <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/50 backdrop-blur-sm">
-
-          <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden">
-
-            {/* Header */}
-            <div className="px-6 py-4 border-b bg-purple-50 flex justify-between items-center">
-              <h2 className="font-bold text-gray-800">Reset Password</h2>
-              <button onClick={() => setIsResetModalOpen(false)}>✕</button>
-            </div>
-
-            {/* Body */}
-            <div className="p-6 space-y-4">
-              <input
-              autoComplete="off"
-                type="password"
-                placeholder="Enter new password"
-                value={resetPassword}
-                onChange={(e) => setResetPassword(e.target.value)}
-                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
-              />
-            </div>
-
-            {/* Footer */}
-            <div className="px-6 py-4 border-t flex gap-3">
-              <button
-                onClick={() => setIsResetModalOpen(false)}
-                className="flex-1 py-2 border rounded-lg"
-              >
-                Cancel
-              </button>
-
-              <button
-                onClick={handleResetPassword }
-                className="flex-1 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
-              >
-                Save
-              </button>
-            </div>
-
-          </div>
-        </div>
-      )}
+      {isResetModalOpen &&
+        <ResetPasswordModal
+          isOpen={isResetModalOpen}
+          setIsResetModalOpen={setIsResetModalOpen}
+          resetPassword={resetPassword}
+          setResetPassword={setResetPassword}
+          selectedUserId={selectedUserId}
+          showToast={showToast}
+        />
+      }
     </div>
   );
 };
