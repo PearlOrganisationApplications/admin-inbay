@@ -46,6 +46,8 @@ const Manager = () => {
   const [resetPassword, setResetPassword] = useState("");
   const [selectedUserId, setSelectedUserId] = useState(null);
 
+
+  const [selectedUser, setSelectedUser] = useState(null);
   useEffect(() => {
     fetchManagers(setManagers);
   }, []);
@@ -117,7 +119,8 @@ const Manager = () => {
   };
 
   // Helper to get the single user to display
-  const displayUser = selectedManagerData?.assigned_users?.[0];
+  // const displayUser = selectedManagerData?.assigned_users?.[0];
+  const displayUser = selectedUser;
 
   return (
     <div className="bg-gray-50 h-screen flex flex-col font-sans relative">
@@ -168,7 +171,7 @@ const Manager = () => {
           />
         </div>
         <div className="flex w-full md:w-auto gap-3">
-          <div className="relative w-full md:w-48">
+          {/* <div className="relative w-full md:w-48">
             <Filter className="absolute left-3 top-2.5 text-indigo-500" size={18} />
             <select
               value={roleFilter}
@@ -180,7 +183,7 @@ const Manager = () => {
                 <option key={idx} value={role}>{role}</option>
               ))}
             </select>
-          </div>
+          </div> */}
           <select
             value={statusFilter}
             onChange={handleStatusFilter}
@@ -225,6 +228,8 @@ const Manager = () => {
               </div>
             </div>
           </div>
+
+          
 
           {paginatedManagers.length === 0 ? (
             <div className="text-center py-20 bg-white rounded-2xl border border-gray-100 shadow-sm">
@@ -420,14 +425,7 @@ const Manager = () => {
       )}
 
       {/* NEW UPDATED View Manager Modal - MATCHING SCREENSHOT */}
-      {viewModalOpen && displayUser &&
-        <ViewUserModal
-          isOpen={viewModalOpen}
-          displayUser={displayUser}
-          selectedManagerData={selectedManagerData}
-          setViewModalOpen={setViewModalOpen}
-        />
-      }
+
 
       {/* Create Modal */}
       {isModalOpen &&
@@ -453,6 +451,11 @@ const Manager = () => {
           showToast={showToast}
         />
       }
+      <ViewUserModal
+    isOpen={viewModalOpen}
+    selectedManagerData={selectedManagerData}
+    setViewModalOpen={setViewModalOpen}
+/>
     </div>
   );
 };

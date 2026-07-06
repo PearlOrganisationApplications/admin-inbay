@@ -1,308 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { fetchVisitSummary } from "./visitApis";
+import { CustomDatePopup, DailyFilterPopup, MonthlyFilterPopup, WeeklyFilterPopup } from "./Modals";
+import VisitFilters from "./VisitFilters";
 
-
-
-const DailyFilterPopup = ({
-  open,
-  onClose,
-  onApply,
-  selectedDay,
-  selectedMonth,
-  selectedYear,
-}) => {
-  const today = new Date(); // ✅ FIX: define today
-
-  const [day, setDay] = useState(selectedDay || today.getDate());
-  const [month, setMonth] = useState(selectedMonth || today.getMonth() + 1);
-  const [year, setYear] = useState(selectedYear || today.getFullYear());
-
-  if (!open) return null;
-
-  const months = [
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December"
-  ];
-
-  const totalDays = new Date(year, month, 0).getDate();
-
-  const daysArray = Array.from(
-    { length: totalDays },
-    (_, i) => i + 1
-  );
-
-  const years = Array.from(
-    { length: 5 },
-    (_, i) => new Date().getFullYear() - i
-  );
-
-  return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-      <div className="bg-white w-[90%] max-w-md rounded-xl p-5 shadow-lg">
-
-        <h2 className="text-lg font-bold mb-4">Daily Filter</h2>
-
-        {/* DAY */}
-        <div className="mb-3">
-          <label className="text-sm text-gray-600">Select Day</label>
-          <select
-            value={day}
-            onChange={(e) => setDay(Number(e.target.value))}
-            className="w-full border p-2 rounded-lg mt-1"
-          >
-            {daysArray.map((d) => (
-              <option key={d} value={d}>{d}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* MONTH */}
-        <div className="mb-3">
-          <label className="text-sm text-gray-600">Select Month</label>
-          <select
-            value={month}
-            onChange={(e) => setMonth(Number(e.target.value))}
-            className="w-full border p-2 rounded-lg mt-1"
-          >
-            {months.map((m, i) => (
-              <option key={i} value={i + 1}>{m}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* YEAR */}
-        <div className="mb-3">
-          <label className="text-sm text-gray-600">Select Year</label>
-          <select
-            value={year}
-            onChange={(e) => setYear(Number(e.target.value))}
-            className="w-full border p-2 rounded-lg mt-1"
-          >
-            {years.map((y) => (
-              <option key={y} value={y}>{y}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* BUTTONS */}
-        <div className="flex justify-end gap-2 mt-5">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 bg-gray-200 rounded-lg"
-          >
-            Cancel
-          </button>
-
-          <button
-            onClick={() => {
-              onApply(day, month, year);
-              onClose();
-            }}
-            className="px-4 py-2 bg-purple-600 text-white rounded-lg"
-          >
-            Apply
-          </button>
-        </div>
-
-      </div>
-    </div>
-  );
-};
-
-const CustomDatePopup = ({ open, onClose, onApply }) => {
-  const [start, setStart] = useState("");
-  const [end, setEnd] = useState("");
-
-  useEffect(() => {
-    if (open) {
-      setStart("");
-      setEnd("");
-    }
-  }, [open]);
-
-  if (!open) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-
-      <div className="bg-white w-[90%] max-w-md rounded-xl p-5 shadow-lg">
-
-        <h2 className="text-lg font-bold mb-4">Custom Date Filter</h2>
-
-        <div className="space-y-3">
-          <div>
-            <label className="text-sm text-gray-600">Start Date</label>
-            <input
-              type="date"
-              value={start}
-              onChange={(e) => setStart(e.target.value)}
-              className="w-full border p-2 rounded-lg mt-1"
-            />
-          </div>
-
-          <div>
-            <label className="text-sm text-gray-600">End Date</label>
-            <input
-              type="date"
-              value={end}
-              onChange={(e) => setEnd(e.target.value)}
-              className="w-full border p-2 rounded-lg mt-1"
-            />
-          </div>
-        </div>
-
-        <div className="flex justify-end gap-2 mt-5">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 bg-gray-200 rounded-lg"
-          >
-            Cancel
-          </button>
-
-          <button
-            onClick={() => {
-              onApply(start, end);
-              onClose();
-            }}
-            className="px-4 py-2 bg-purple-600 text-white rounded-lg"
-          >
-            Apply
-          </button>
-        </div>
-
-      </div>
-    </div>
-  );
-};
-
-
-const MonthlyFilterPopup = ({ open, onClose, onApply, selectedMonth, selectedYear }) => {
-  const [month, setMonth] = useState(selectedMonth);
-  const [year, setYear] = useState(selectedYear);
-
-  if (!open) return null;
-
-  const months = [
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December"
-  ];
-
-  const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
-
-  return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-      <div className="bg-white w-[90%] max-w-md rounded-xl p-5 shadow-lg">
-
-        <h2 className="text-lg font-bold mb-4">Monthly Filter</h2>
-
-        {/* MONTH SELECT */}
-        <div className="mb-3">
-          <label className="text-sm text-gray-600">Select Month</label>
-          <select
-            value={month}
-            onChange={(e) => setMonth(Number(e.target.value))}
-            className="w-full border p-2 rounded-lg mt-1"
-          >
-            {months.map((m, i) => (
-              <option key={i} value={i + 1}>{m}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* YEAR SELECT */}
-        <div className="mb-3">
-          <label className="text-sm text-gray-600">Select Year</label>
-          <select
-            value={year}
-            onChange={(e) => setYear(Number(e.target.value))}
-            className="w-full border p-2 rounded-lg mt-1"
-          >
-            {years.map((y) => (
-              <option key={y} value={y}>{y}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* ACTION BUTTONS */}
-        <div className="flex justify-end gap-2 mt-5">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 bg-gray-200 rounded-lg"
-          >
-            Cancel
-          </button>
-
-          <button
-            onClick={() => {
-              onApply(month, year);
-              onClose();
-            }}
-            className="px-4 py-2 bg-purple-600 text-white rounded-lg"
-          >
-            Apply
-          </button>
-        </div>
-
-      </div>
-    </div>
-  );
-};
-
-const WeeklyFilterPopup = ({
-  open,
-  onClose,
-  onApply,
-  selectedEndDate,
-}) => {
-  const [endDate, setEndDate] = useState(selectedEndDate || "");
-
-  if (!open) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-      <div className="bg-white w-[90%] max-w-md rounded-xl p-5 shadow-lg">
-
-        <h2 className="text-lg font-bold mb-4">Weekly Filter</h2>
-
-        {/* END DATE */}
-        <div className="mb-3">
-          <label className="text-sm text-gray-600">Select End Date</label>
-          <input
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            className="w-full border p-2 rounded-lg mt-1"
-          />
-        </div>
-
-        <p className="text-xs text-gray-500 mb-3">
-          Start date automatically calculated (7 days before end date)
-        </p>
-
-        {/* BUTTONS */}
-        <div className="flex justify-end gap-2 mt-5">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 bg-gray-200 rounded-lg"
-          >
-            Cancel
-          </button>
-
-          <button
-            onClick={() => {
-              onApply(endDate);
-              onClose();
-            }}
-            className="px-4 py-2 bg-purple-600 text-white rounded-lg"
-          >
-            Apply
-          </button>
-        </div>
-
-      </div>
-    </div>
-  );
-};
 
 const Visit = () => {
   // dropdown + select filter
@@ -315,6 +16,8 @@ const Visit = () => {
   const itemsPerPage = 5;
 
   const today = new Date();
+
+
 
   // ✅ FIX: missing states added
   const [selectedDay, setSelectedDay] = useState(today.getDate());
@@ -333,6 +36,28 @@ const Visit = () => {
 
   const [weeklyStartDate, setWeeklyStartDate] = useState("");
   const [weeklyEndDate, setWeeklyEndDate] = useState("");
+
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target)
+      ) {
+        setShowEmployeeDropdown(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener(
+        "mousedown",
+        handleClickOutside
+      );
+    };
+  }, []);
 
   // ======================
   // HANDLERS
@@ -373,29 +98,6 @@ const Visit = () => {
   };
 
   // ======================
-  // API URL BUILDER
-  // ======================
-
-  const getApiUrl = () => {
-    let url =
-      "https://test.pearl-developer.com/Inbay_Innovations/public/api/daily-Summary?";
-
-    if (reportType === "daily") {
-      const date = `${selectedYear}-${selectedMonth}-${selectedDay}`;
-      url += `date=${date}`;
-    } else if (reportType === "weekly") {
-      url += `start_date=${weeklyStartDate}&end_date=${weeklyEndDate}`;
-    } else if (reportType === "monthly") {
-      url += `month=${selectedMonth}&year=${selectedYear}`;
-    } else if (reportType === "custom") {
-      if (!customStartDate || !customEndDate) return url;
-      url += `start_date=${customStartDate}&end_date=${customEndDate}`;
-    }
-    return url;
-  };
-
-
-  // ======================
   // API STATE
   // ======================
 
@@ -406,75 +108,40 @@ const Visit = () => {
     total_expenses: "₹0",
   });
   const [loading, setLoading] = useState(true);
-    const [rawResponse, setRawResponse] = useState(null);
-  
+  const [rawResponse, setRawResponse] = useState(null);
+
 
   // ======================
   // FETCH DATA
   // ======================
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const url = getApiUrl(); // ✅ FIXED (was missing)
-
-         const token = localStorage.getItem("token");
-
-        const res = await fetch(url, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
-
-        const json = await res.json();
-        setRawResponse(json); // ✅ Store raw response for CSV export
-
-        if (json.success) {
-          const allVisits = [];
-
-          json.data.forEach((day) => {
-            day.visits.forEach((v) => {
-              allVisits.push({
-                salesRepEmail: v.user_details.email,
-                salesRep: v.user_details.name,
-                customer: v.customer_details.customer,
-                phone: v.customer_details.mobile,
-                department: v.user_details.team || "N/A",
-                contactPerson: v.customer_details.contact,
-                address: v.customer_details.address,
-                city: v.customer_details.address.split(" ").pop(),
-                state: v.user_details.state,
-                order: `₹${v.outcomes.order}`,
-                expense: `₹${v.outcomes.expense}`,
-                actualVisitDate: day.date,
-                actualVisitStartTime: v.schedule_and_time.actual,
-                durationTime: v.schedule_and_time.duration,
-                remark: v.outcomes.remark,
-                location: v.location.checkin_address,
-                signature: v.signature,
-              });
-            });
-          });
+    fetchVisitSummary(
+      reportType,
+      selectedDay,
+      selectedMonth,
+      selectedYear,
+      weeklyStartDate,
+      weeklyEndDate,
+      customStartDate,
+      customEndDate,
+      setVisitData,
+      setSummary,
+      setRawResponse,
+      setLoading
+    );
+  }, [
+    reportType,
+    selectedDay,
+    selectedMonth,
+    selectedYear,
+    weeklyStartDate,
+    weeklyEndDate,
+    customStartDate,
+    customEndDate,
+  ]);
 
 
-          setVisitData(allVisits);
-
-          setSummary({
-            total_visits: json.summary.total_visits,
-            orders_placed: json.summary.orders_placed,
-            total_expenses: json.summary.total_expenses,
-          });
-        }
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [selectedDay, selectedMonth, selectedYear, reportType,weeklyEndDate,weeklyStartDate,customEndDate,customStartDate]);
 
   // Logic for Pagination
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -542,6 +209,16 @@ const Visit = () => {
     setCurrentPage(1);
   };
 
+
+  const pagesPerGroup = 5;
+
+  const startPage =
+    Math.floor((currentPage - 1) / pagesPerGroup) * pagesPerGroup + 1;
+
+  const endPage = Math.min(
+    startPage + pagesPerGroup - 1,
+    totalPages
+  );
 
   // ✅ Export CSV Function
 
@@ -695,150 +372,23 @@ const Visit = () => {
       </div>
 
       {/* 2. SEARCH & FILTER SECTION - FIXED */}
-      <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-8 shrink-0">
-        <div className="relative w-full md:max-w-md">
-
-          <div
-            onClick={() => setShowEmployeeDropdown(!showEmployeeDropdown)}
-            className="w-full min-h-[46px] border border-gray-200 rounded-xl px-3 py-2 bg-white cursor-pointer flex items-center justify-between shadow-sm"
-          >
-            {selectedEmployees.length === 0 ? (
-              <span className="text-sm text-gray-400">
-                Search & Select Employees
-              </span>
-            ) : (
-              <span className="text-sm font-semibold text-[#8b2cf5]">
-                {selectedEmployees.length} Employees Selected
-              </span>
-            )}
-          </div>
-
-          {showEmployeeDropdown && (
-            <div className="absolute top-full mt-2 left-0 w-full bg-white border border-gray-200 rounded-2xl shadow-xl z-50 p-3">
-
-              {/* SEARCH */}
-              <div className="relative mb-3">
-
-                <svg
-                  className="absolute left-3 top-2.5 w-4 h-4 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  />
-                </svg>
-
-                <input
-                  type="text"
-                  placeholder="Search employee..."
-                  value={employeeSearch}
-                  onChange={(e) =>
-                    setEmployeeSearch(e.target.value)
-                  }
-                  className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-purple-500"
-                />
-              </div>
-
-              {/* SELECT ALL */}
-              <label className="flex items-center gap-2 px-2 py-2 hover:bg-gray-50 rounded-lg cursor-pointer">
-
-                <input
-                  type="checkbox"
-                  checked={
-                    selectedEmployees.length === uniqueEmployees.length
-                  }
-                  onChange={handleSelectAllEmployees}
-                />
-
-                <span className="text-sm font-semibold text-[#8b2cf5]">
-                  Select All
-                </span>
-              </label>
-
-              {/* EMPLOYEE LIST */}
-              <div className="max-h-60 overflow-y-auto mt-2 space-y-1">
-
-                {filteredEmployeeOptions.map((name, idx) => (
-                  <label
-                    key={idx}
-                    className="flex items-center gap-2 px-2 py-2 hover:bg-gray-50 rounded-lg cursor-pointer"
-                  >
-
-                    <input
-                      type="checkbox"
-                      checked={selectedEmployees.includes(name)}
-                      onChange={() =>
-                        handleEmployeeSelect(name)
-                      }
-                    />
-
-                    <span className="text-sm text-gray-700">
-                      {name}
-                    </span>
-
-                  </label>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-        <div className="bg-gray-100 p-1 rounded-2xl flex flex-wrap items-center gap-1 shadow-sm w-fit">
-
-          {["daily", "weekly", "monthly", "custom"].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => {
-
-                if (tab === "daily") {
-                  setShowDailyPopup(true);
-                }
-                else if (tab === "weekly") {
-                  setShowWeeklyPopup(true);
-                }
-                else if (tab === "custom") {
-                  setShowCustomPopup(true);
-                }
-                else if (tab === "monthly") {
-                  setShowMonthlyPopup(true);
-                }
-                else {
-                  setReportType(tab);
-                }
-              }}
-              className={`px-3 py-2 rounded-xl text-sm font-bold capitalize transition-all duration-300
-          ${reportType === tab
-                  ? "bg-purple-600 text-white shadow-md"
-                  : "text-gray-600 hover:bg-white"
-                }`}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
-        <div className="flex items-center gap-3 bg-white border border-gray-200 px-4 py-2.5 rounded-xl cursor-pointer hover:bg-gray-50 transition-colors shadow-sm w-full md:w-auto">
-          <svg
-            className="w-5 h-5 text-[#8b2cf5]"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
-            />
-          </svg>
-          <span className="text-sm font-semibold text-gray-700">
-            All Departments
-          </span>
-        </div>
-      </div>
+      <VisitFilters
+        selectedEmployees={selectedEmployees}
+        showEmployeeDropdown={showEmployeeDropdown}
+        setShowEmployeeDropdown={setShowEmployeeDropdown}
+        employeeSearch={employeeSearch}
+        setEmployeeSearch={setEmployeeSearch}
+        uniqueEmployees={uniqueEmployees}
+        filteredEmployeeOptions={filteredEmployeeOptions}
+        handleEmployeeSelect={handleEmployeeSelect}
+        handleSelectAllEmployees={handleSelectAllEmployees}
+        reportType={reportType}
+        setShowDailyPopup={setShowDailyPopup}
+        setShowWeeklyPopup={setShowWeeklyPopup}
+        setShowMonthlyPopup={setShowMonthlyPopup}
+        setShowCustomPopup={setShowCustomPopup}
+        dropdownRef={dropdownRef}
+      />
 
       {/* 3. SCROLLABLE AREA (Stats + Visit Cards) */}
       <div className="flex-1 overflow-y-auto space-y-8 pr-2 custom-scrollbar pb-10">
@@ -1076,29 +626,51 @@ const Visit = () => {
 
       {/* 4. PAGINATION - FIXED AT BOTTOM */}
       <div className="flex justify-center items-center gap-2 mt-4 pb-4 shrink-0 bg-gray-50">
+
+        {/* Prev */}
+
         <button
-          onClick={() => setCurrentPage((prev) => prev - 1)}
+          onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
           disabled={currentPage === 1}
           className="px-3 py-1 rounded-md border bg-white text-sm disabled:opacity-50"
         >
           Prev
         </button>
-        {[...Array(totalPages)].map((_, i) => (
-          <button
-            key={i}
-            onClick={() => setCurrentPage(i + 1)}
-            className={`px-3 py-1 rounded-md text-sm ${currentPage === i + 1 ? "bg-[#8b2cf5] text-white" : "bg-white border"}`}
-          >
-            {i + 1}
-          </button>
-        ))}
+
+        {/* Page Numbers */}
+
+        {Array.from(
+          { length: endPage - startPage + 1 },
+          (_, i) => {
+            const page = startPage + i;
+
+            return (
+              <button
+                key={page}
+                onClick={() => setCurrentPage(page)}
+                className={`px-3 py-1 rounded-md text-sm ${currentPage === page
+                  ? "bg-[#8b2cf5] text-white"
+                  : "bg-white border"
+                  }`}
+              >
+                {page}
+              </button>
+            );
+          }
+        )}
+
+        {/* Next */}
+
         <button
-          onClick={() => setCurrentPage((prev) => prev + 1)}
+          onClick={() =>
+            setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+          }
           disabled={currentPage === totalPages}
           className="px-3 py-1 rounded-md border bg-white text-sm disabled:opacity-50"
         >
           Next
         </button>
+
       </div>
 
       <CustomDatePopup

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import {
   CheckCircle,
   XCircle,
@@ -18,65 +18,153 @@ import {
   UserX
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { fetchAttendance } from "./attendanceApis";
+import AttendanceFilters from "./AttendanceFilters";
+import CustomDateModal from "./CustomDateModal";
+import { CustomDatePopup, DailyFilterPopup, MonthlyFilterPopup, WeeklyFilterPopup } from "./Modals";
 
 const ITEMS_PER_PAGE = 10;
 
 const Attendance = () => {
   const [data, setData] = useState([]);
-
+  const [rawResponse, setRawResponse] = useState(null);
+  const [weeklyStartDate, setWeeklyStartDate] = useState("");
+  const [weeklyEndDate, setWeeklyEndDate] = useState("");
 
   const navigate = useNavigate();
+  const [showMonthlyPopup, setShowMonthlyPopup] = useState(false);
+  const [showDailyPopup, setShowDailyPopup] = useState(false);
+  const [showWeeklyPopup, setShowWeeklyPopup] = useState(false);
 
   // drop dow + select filter 
-  const [employeeSearch, setEmployeeSearch] = useState("");
-  const [selectedEmployees, setSelectedEmployees] = useState([]);
+  const [employeeSearch, setEmployeeSearch] = useState(() => {
+    return localStorage.getItem("attendanceEmployeeSearch") || "";
+  });
+
+  const [selectedEmployees, setSelectedEmployees] = useState(() => {
+    const saved = localStorage.getItem("attendanceSelectedEmployees");
+    return saved ? JSON.parse(saved) : [];
+  });
+
   const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false);
   const [summary, setSummary] = useState({
     total_employees: 0,
     total_present: 0,
     total_absent: 0,
   });
-  const [shiftFilter, setShiftFilter] = useState("");
+
+  const [shiftFilter, setShiftFilter] = useState(() => {
+    return localStorage.getItem("attendanceShiftFilter") || "";
+  });
+
   const [currentPage, setCurrentPage] = useState(1);
 
   const today = new Date();
 
-  const [selectedDay, setSelectedDay] = useState(today.getDate());
-  const [month, setMonth] = useState(today.getMonth() + 1);
-  const [year, setYear] = useState(today.getFullYear());
-  const [activeTab, setActiveTab] = useState("monthly");
+  const [selectedDay, setSelectedDay] = useState(() => {
+    return Number(localStorage.getItem("attendanceSelectedDay")) || today.getDate();
+  });
+
+  const [month, setMonth] = useState(() => {
+    return Number(localStorage.getItem("attendanceMonth")) || (today.getMonth() + 1);
+  });
+
+  const [year, setYear] = useState(() => {
+    return Number(localStorage.getItem("attendanceYear")) || today.getFullYear();
+  });
+
+  const [activeTab, setActiveTab] = useState(() => {
+    return localStorage.getItem("attendanceActiveTab") || "monthly";
+  });
+
   const [showCustomPopup, setShowCustomPopup] = useState(false);
 
-  const [customStartDate, setCustomStartDate] = useState("");
-  const [customEndDate, setCustomEndDate] = useState("");
-  const [weekType, setWeekType] = useState("this");
+  const [customStartDate, setCustomStartDate] = useState(() => {
+    return localStorage.getItem("attendanceCustomStartDate") || "";
+  });
 
-  const getWeekRange = (type = "this") => {
+  const [customEndDate, setCustomEndDate] = useState(() => {
+    return localStorage.getItem("attendanceCustomEndDate") || "";
+  });
 
-    const today = new Date();
+  const [weekType, setWeekType] = useState(() => {
+    return localStorage.getItem("attendanceWeekType") || "this";
+  });
 
-    const currentDay = today.getDay();
+  useEffect(() => {
+    localStorage.setItem("attendanceEmployeeSearch", employeeSearch);
+  }, [employeeSearch]);
 
-    const diff = currentDay === 0 ? -6 : 1 - currentDay;
+  useEffect(() => {
+    localStorage.setItem(
+      "attendanceSelectedEmployees",
+      JSON.stringify(selectedEmployees)
+    );
+  }, [selectedEmployees]);
 
-    const monday = new Date(today);
+  useEffect(() => {
+    localStorage.setItem("attendanceShiftFilter", shiftFilter);
+  }, [shiftFilter]);
 
-    monday.setDate(today.getDate() + diff);
+  useEffect(() => {
+    localStorage.setItem("attendanceSelectedDay", selectedDay);
+  }, [selectedDay]);
 
-    if (type === "last") {
-      monday.setDate(monday.getDate() - 7);
-    }
+  useEffect(() => {
+    localStorage.setItem("attendanceMonth", month);
+  }, [month]);
 
-    const sunday = new Date(monday);
+  useEffect(() => {
+    localStorage.setItem("attendanceYear", year);
+  }, [year]);
 
-    sunday.setDate(monday.getDate() + 6);
+  useEffect(() => {
+    localStorage.setItem("attendanceActiveTab", activeTab);
+  }, [activeTab]);
 
-    return {
-      startDate: monday.toISOString().split("T")[0],
-      endDate: sunday.toISOString().split("T")[0],
-    };
+  useEffect(() => {
+    localStorage.setItem("attendanceCustomStartDate", customStartDate);
+  }, [customStartDate]);
+
+  useEffect(() => {
+    localStorage.setItem("attendanceCustomEndDate", customEndDate);
+  }, [customEndDate]);
+
+  useEffect(() => {
+    localStorage.setItem("attendanceWeekType", weekType);
+  }, [weekType]);
+
+  const resetFilters = () => {
+    setEmployeeSearch("");
+    setSelectedEmployees([]);
+    setShiftFilter("");
+
+    setSelectedDay(today.getDate());
+    setMonth(today.getMonth() + 1);
+    setYear(today.getFullYear());
+
+    setActiveTab("monthly");
+
+    setCustomStartDate("");
+    setCustomEndDate("");
+    setWeekType("this");
+
+    localStorage.removeItem("attendanceEmployeeSearch");
+    localStorage.removeItem("attendanceSelectedEmployees");
+    localStorage.removeItem("attendanceShiftFilter");
+    localStorage.removeItem("attendanceSelectedDay");
+    localStorage.removeItem("attendanceMonth");
+    localStorage.removeItem("attendanceYear");
+    localStorage.removeItem("attendanceActiveTab");
+    localStorage.removeItem("attendanceCustomStartDate");
+    localStorage.removeItem("attendanceCustomEndDate");
+    localStorage.removeItem("attendanceWeekType");
   };
 
+  console.log({
+    weeklyStartDate,
+    weeklyEndDate,
+  });
 
   const renderImageLink = (url, label) => {
     if (!url) return <span className="text-gray-400">{label}</span>;
@@ -96,192 +184,23 @@ const Attendance = () => {
   };
 
 
-  const [rawResponse, setRawResponse] = useState(null);
+
+
+
   useEffect(() => {
-
-    const fetchAttendance = async () => {
-      try {
-
-        let url = "";
-
-        // DAILY API
-        if (activeTab === "daily") {
-
-          url = `https://test.pearl-developer.com/Inbay_Innovations/public/api/attendance/dashboard?date=${year}-${String(month).padStart(2, "0")}-${String(selectedDay).padStart(2, "0")}`;
-
-        }
-
-        // WEEKLY API
-        else if (activeTab === "weekly") {
-
-          const { startDate, endDate } = getWeekRange(weekType);
-
-          url = `https://test.pearl-developer.com/Inbay_Innovations/public/api/attendance/dashboard?start_date=${startDate}&end_date=${endDate}`;
-        }
-        // MONTHLY API
-        else if (activeTab === "monthly") {
-
-          url = `https://test.pearl-developer.com/Inbay_Innovations/public/api/attendance/dashboard?month=${month}&year=${year}`;
-
-        }
-
-        // CUSTOM API
-        else if (activeTab === "custom") {
-
-          url = `https://test.pearl-developer.com/Inbay_Innovations/public/api/attendance/dashboard?start_date=${customStartDate}&end_date=${customEndDate}`;
-
-        }
-
-        const token = localStorage.getItem("token");
-
-        const res = await fetch(url, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
-
-        const result = await res.json();
-        setRawResponse(result);
-
-        console.log(result);
-
-        // ---------- MONTHLY RESPONSE ----------
-        if (activeTab === "monthly") {
-
-          const allEmployees = result.data.flatMap((dayData) =>
-            dayData.employees.map((emp) => ({
-              id: `${emp.id}-${dayData.date}`,
-              name: emp.name || "N/A",
-              email: emp.email || "N/A",
-              group: emp.group || "N/A",
-              department: emp.department || "N/A",
-              attendance: emp.status || "Absent",
-
-              scheduledStart: emp.time_tracking?.scheduled?.split(" - ")[0] || "--",
-              scheduledEnd: emp.time_tracking?.scheduled?.split(" - ")[1] || "--",
-
-              actualStart: emp.time_tracking?.actual?.split(" - ")[0] || "--",
-              actualEnd: emp.time_tracking?.actual?.split(" - ")[1] || "--",
-
-              totalHours: emp.time_tracking?.total_hours || "0h 0m",
-
-              location: emp.location,
-              endLocation: emp.travel_details?.end_location || "--",
-
-              distance: emp.travel_details?.total_distance || "0 KM",
-
-              morningRemark: emp.remarks?.morning || "--",
-              eveningRemark: emp.remarks?.evening || "--",
-              remarks: emp.remarks?.general || "--",
-
-              morningOdo: emp.travel_details?.odometer?.split(" → ")[0] || "0",
-              eveningOdo: emp.travel_details?.odometer?.split(" → ")[1] || "0",
-
-              attendance_images: emp.attendance_images || null,   // ✅ ADD THIS
-
-              date: dayData.date,
-              day: dayData.day,
-            }))
-          );
-
-          setData(allEmployees);
-
-          setSummary({
-            total_employees:
-              result.data[0]?.summary?.total_employees || 0,
-
-            total_present: result.data.reduce(
-              (acc, item) => acc + item.summary.total_present,
-              0
-            ),
-
-            total_absent: result.data.reduce(
-              (acc, item) => acc + item.summary.total_absent,
-              0
-            ),
-          });
-        }
-
-        // ---------- DAILY / WEEKLY / CUSTOM ----------
-
-        else {
-          const source = result.data
-            ? result.data
-            : result.employees
-              ? [
-                {
-                  date: result.date,
-                  day: result.day,
-                  summary: result.summary,
-                  employees: result.employees,
-                },
-              ]
-              : [];
-
-          const employees = source.flatMap((day) =>
-            (day.employees || []).map((emp) => ({
-              id: `${emp.id}-${day.date}`,
-
-              name: emp.name || "N/A",
-              email: emp.email || "N/A",
-              group: emp.group || "N/A",
-              department: emp.department || "N/A",
-
-              attendance: emp.status || "Absent",
-
-              scheduledStart: emp.time_tracking?.scheduled?.split(" - ")[0] || "--",
-              scheduledEnd: emp.time_tracking?.scheduled?.split(" - ")[1] || "--",
-
-              actualStart: emp.time_tracking?.actual?.split(" - ")[0] || "--",
-              actualEnd: emp.time_tracking?.actual?.split(" - ")[1] || "--",
-
-              totalHours: emp.time_tracking?.total_hours || "0h 0m",
-
-              location: "Office",
-              endLocation: emp.travel_details?.end_location || "--",
-
-              remarks: emp.remarks?.general || "--",
-
-              distance: emp.travel_details?.total_distance || "0 KM",
-
-              morningRemark: emp.remarks?.morning || "--",
-              eveningRemark: emp.remarks?.evening || "--",
-
-              morningOdo: emp.travel_details?.odometer?.split(" → ")[0] || "0",
-              eveningOdo: emp.travel_details?.odometer?.split(" → ")[1] || "0",
-
-              date: emp.date,
-              day: emp.day,
-
-              attendance_images: emp.attendance_images || null,
-            }))
-          );
-
-          setData(employees);
-
-          setSummary({
-            total_employees: source[0]?.summary?.total_employees || 0,
-            total_present: source.reduce(
-              (acc, item) => acc + (item.summary?.total_present || 0),
-              0
-            ),
-            total_absent: source.reduce(
-              (acc, item) => acc + (item.summary?.total_absent || 0),
-              0
-            ),
-          });
-        }
-
-      } catch (error) {
-
-        console.log(error);
-
-      }
-    };
-
-    fetchAttendance();
-
+    fetchAttendance(
+      activeTab,
+      selectedDay,
+      month,
+      year,
+      customStartDate,
+      customEndDate,
+      weeklyStartDate,
+      weeklyEndDate,
+      setRawResponse,
+      setData,
+      setSummary
+    );
   }, [
     activeTab,
     selectedDay,
@@ -289,7 +208,9 @@ const Attendance = () => {
     year,
     customStartDate,
     customEndDate,
-    weekType
+    weekType,
+    weeklyEndDate,
+    weeklyStartDate
   ]);
 
   useEffect(() => {
@@ -334,7 +255,7 @@ const Attendance = () => {
 
 
 
-  console.log("Filtered Data:", filteredData)
+
 
   const uniqueEmployees = useMemo(() => {
 
@@ -419,10 +340,66 @@ const Attendance = () => {
     setCurrentPage(1);
   };
 
+
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target)
+      ) {
+        setShowEmployeeDropdown(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () =>
+      document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+
+  const handleDailyApply = (day, selectedMonth, selectedYear) => {
+    setSelectedDay(day);
+    setMonth(selectedMonth);
+    setYear(selectedYear);
+    setActiveTab("daily");
+    setCurrentPage(1);
+  };
+
+  const handleMonthlyApply = (selectedMonth, selectedYear) => {
+    setMonth(selectedMonth);
+    setYear(selectedYear);
+    setActiveTab("monthly");
+    setCurrentPage(1);
+  };
+
+
+  const handleWeeklyApply = (endDate) => {
+    const end = new Date(endDate);
+    const start = new Date(end);
+    console.log("Parent Received:", endDate);
+
+    start.setDate(end.getDate() - 6);
+
+    setWeeklyEndDate(endDate);
+    setWeeklyStartDate(start.toISOString().split("T")[0]);
+
+    setActiveTab("weekly");
+    setCurrentPage(1);
+  };
+
+  const handleCustomApply = (startDate, endDate) => {
+    setCustomStartDate(startDate);
+    setCustomEndDate(endDate);
+    setActiveTab("custom");
+    setCurrentPage(1);
+  };
   // Export CSV
   const handleExport = () => {
-     console.log("Raw Response", rawResponse);
-   
+    console.log("Raw Response", rawResponse);
+
 
     const exportData = rawResponse?.data
       ? rawResponse.data
@@ -480,7 +457,7 @@ const Attendance = () => {
 
     const rows = [];
 
-  exportData.forEach((dayData) => {
+    exportData.forEach((dayData) => {
       // AGAR EMPLOYEES EMPTY HAIN
       if (!dayData.employees || dayData.employees.length === 0) {
         rows.push(
@@ -631,238 +608,46 @@ const Attendance = () => {
       </div>
 
       {/* TOOLBAR: SEARCH & FILTERS */}
-      <div className="bg-white px-6 py-4 shadow-sm border-b border-gray-100 flex flex-col gap-5">
+      <AttendanceFilters
+        // employee dropdown
+        employeeSearch={employeeSearch}
+        setEmployeeSearch={setEmployeeSearch}
+        selectedEmployees={selectedEmployees}
+        setSelectedEmployees={setSelectedEmployees}
+        showEmployeeDropdown={showEmployeeDropdown}
+        setShowEmployeeDropdown={setShowEmployeeDropdown}
+        uniqueEmployees={uniqueEmployees}
+        filteredEmployeeOptions={filteredEmployeeOptions}
+        handleEmployeeSelect={handleEmployeeSelect}
+        handleSelectAllEmployees={handleSelectAllEmployees}
 
-        {/* TOP SECTION */}
-        <div className="flex flex-col xl:flex-row gap-4 xl:items-center xl:justify-between">
+        // shift
+        shiftFilter={shiftFilter}
+        uniqueShifts={uniqueShifts}
+        handleShiftFilter={handleShiftFilter}
 
-          {/* LEFT FILTERS */}
-          <div className="flex flex-col lg:flex-row gap-4 flex-1">
+        // tabs
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        setShowCustomPopup={setShowCustomPopup}
 
-            {/* EMPLOYEE SEARCH */}
-            <div className="relative w-full md:max-w-md">
-
-              <div
-                onClick={() => setShowEmployeeDropdown(!showEmployeeDropdown)}
-                className="w-full min-h-[46px] border border-gray-200 rounded-xl px-3 py-2 bg-white cursor-pointer flex items-center justify-between shadow-sm"
-              >
-                {selectedEmployees.length === 0 ? (
-                  <span className="text-sm text-gray-400">
-                    Search & Select Employees
-                  </span>
-                ) : (
-                  <span className="text-sm font-semibold text-[#8b2cf5]">
-                    {selectedEmployees.length} Employees Selected
-                  </span>
-                )}
-              </div>
-
-              {showEmployeeDropdown && (
-                <div className="absolute top-full mt-2 left-0 w-full bg-white border border-gray-200 rounded-2xl shadow-xl z-50 p-3">
-
-                  {/* SEARCH */}
-                  <div className="relative mb-3">
-                    <svg
-                      className="absolute left-3 top-2.5 w-4 h-4 text-gray-400"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                      />
-                    </svg>
-
-                    <input
-                      type="text"
-                      placeholder="Search employee..."
-                      value={employeeSearch}
-                      onChange={(e) => setEmployeeSearch(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-purple-500"
-                    />
-                  </div>
-
-                  {/* SELECT ALL */}
-                  <label className="flex items-center gap-2 px-2 py-2 hover:bg-gray-50 rounded-lg cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={selectedEmployees.length === uniqueEmployees.length}
-                      onChange={handleSelectAllEmployees}
-                    />
-                    <span className="text-sm font-semibold text-[#8b2cf5]">
-                      Select All
-                    </span>
-                  </label>
-
-                  {/* EMPLOYEE LIST */}
-                  <div className="max-h-60 overflow-y-auto mt-2 space-y-1">
-
-                    {filteredEmployeeOptions.map((name, idx) => (
-                      <label
-                        key={idx}
-                        className="flex items-center gap-2 px-2 py-2 hover:bg-gray-50 rounded-lg cursor-pointer"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={selectedEmployees.includes(name)}
-                          onChange={() => handleEmployeeSelect(name)}
-                        />
-                        <span className="text-sm text-gray-700">{name}</span>
-                      </label>
-                    ))}
-
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* SHIFT FILTER */}
-            <div className="relative w-full lg:w-64">
-              <Filter
-                className="absolute left-3 top-3 text-purple-500"
-                size={18}
-              />
-
-              <select
-                value={shiftFilter}
-                onChange={handleShiftFilter}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm bg-white shadow-sm appearance-none"
-              >
-                <option value="">All Shifts</option>
-
-                {uniqueShifts.map((shift, idx) => (
-                  <option key={idx} value={shift}>
-                    {shift}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-
-
-        </div>
-
-        {/* TABS + FILTERS */}
-        <div className="flex flex-col lg:flex-row gap-4 lg:items-center lg:justify-between">
-
-          {/* TABS */}
-          <div className="bg-gray-100 p-1 rounded-2xl flex flex-wrap items-center gap-1 shadow-sm w-fit">
-
-            {["daily", "weekly", "monthly", "custom"].map((tab) => (
-              <button
-                key={tab}
-                onClick={() => {
-                  if (tab === "custom") {
-                    setActiveTab("custom");
-                    setShowCustomPopup(true);
-                  } else {
-                    setActiveTab(tab);
-                  }
-                }}
-                className={`px-4 py-2 rounded-xl text-sm font-bold capitalize transition-all duration-300
-          ${activeTab === tab
-                    ? "bg-purple-600 text-white shadow-md"
-                    : "text-gray-600 hover:bg-white"
-                  }`}
-              >
-                {tab}
-              </button>
-            ))}
-          </div>
-
-          {/* ACTIVE FILTERS */}
-          <div className="flex flex-wrap gap-3 items-center">
-
-            {/* DAILY */}
-            {activeTab === "daily" && (
-              <>
-                <select
-                  value={selectedDay}
-                  onChange={(e) => setSelectedDay(Number(e.target.value))}
-                  className="border border-gray-300 px-4 py-2.5 rounded-xl text-sm bg-white shadow-sm"
-                >
-                  {daysArray.map((day) => (
-                    <option key={day} value={day}>
-                      Day {day}
-                    </option>
-                  ))}
-                </select>
-
-                <select
-                  value={month}
-                  onChange={(e) => setMonth(Number(e.target.value))}
-                  className="border border-gray-300 px-4 py-2.5 rounded-xl text-sm bg-white shadow-sm"
-                >
-                  <option value={1}>January</option>
-                  <option value={2}>February</option>
-                  <option value={3}>March</option>
-                  <option value={4}>April</option>
-                  <option value={5}>May</option>
-                  <option value={6}>June</option>
-                  <option value={7}>July</option>
-                  <option value={8}>August</option>
-                  <option value={9}>September</option>
-                  <option value={10}>October</option>
-                  <option value={11}>November</option>
-                  <option value={12}>December</option>
-                </select>
-              </>
-            )}
-
-            {/* MONTHLY */}
-            {activeTab === "monthly" && (
-              <>
-                <select
-                  value={month}
-                  onChange={(e) => setMonth(Number(e.target.value))}
-                  className="border border-gray-300 px-4 py-2.5 rounded-xl text-sm bg-white shadow-sm"
-                >
-                  <option value={1}>January</option>
-                  <option value={2}>February</option>
-                  <option value={3}>March</option>
-                  <option value={4}>April</option>
-                  <option value={5}>May</option>
-                  <option value={6}>June</option>
-                  <option value={7}>July</option>
-                  <option value={8}>August</option>
-                  <option value={9}>September</option>
-                  <option value={10}>October</option>
-                  <option value={11}>November</option>
-                  <option value={12}>December</option>
-                </select>
-
-                <select
-                  value={year}
-                  onChange={(e) => setYear(Number(e.target.value))}
-                  className="border border-gray-300 px-4 py-2.5 rounded-xl text-sm bg-white shadow-sm"
-                >
-                  {[2024, 2025, 2026, 2027, 2028, 2029, 2030].map((yr) => (
-                    <option key={yr} value={yr}>
-                      {yr}
-                    </option>
-                  ))}
-                </select>
-              </>
-            )}
-
-            {/* WEEKLY */}
-            {activeTab === "weekly" && (
-              <select
-                value={weekType}
-                onChange={(e) => setWeekType(e.target.value)}
-                className="border border-gray-300 px-4 py-2.5 rounded-xl text-sm bg-white shadow-sm"
-              >
-                <option value="this">This Week</option>
-                <option value="last">Last Week</option>
-              </select>
-            )}
-          </div>
-        </div>
-      </div>
+        // date filters
+        selectedDay={selectedDay}
+        setSelectedDay={setSelectedDay}
+        month={month}
+        setMonth={setMonth}
+        year={year}
+        setYear={setYear}
+        weekType={weekType}
+        setWeekType={setWeekType}
+        daysArray={daysArray}
+        dropdownRef={dropdownRef}
+        resetFilters={resetFilters}
+        setShowDailyPopup={setShowDailyPopup}
+        setShowWeeklyPopup={setShowWeeklyPopup}
+        setShowMonthlyPopup={setShowMonthlyPopup}
+        setShowCustomPopup={setShowCustomPopup}
+      />
 
       {/* MAIN CONTENT AREA */}
       <div className="flex-1 overflow-y-auto p-4 md:p-6">
@@ -1106,75 +891,35 @@ const Attendance = () => {
         </div>
       )}
       {/* CUSTOM DATE POPUP */}
-      {showCustomPopup && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+      <DailyFilterPopup
+        open={showDailyPopup}
+        onClose={() => setShowDailyPopup(false)}
+        onApply={handleDailyApply}
+        selectedDay={selectedDay}
+        selectedMonth={month}
+        selectedYear={year}
+      />
 
-          <div className="bg-white rounded-2xl p-6 w-[90%] max-w-md shadow-2xl">
+      <MonthlyFilterPopup
+        open={showMonthlyPopup}
+        onClose={() => setShowMonthlyPopup(false)}
+        onApply={handleMonthlyApply}
+        selectedMonth={month}
+        selectedYear={year}
+      />
 
-            <h2 className="text-xl font-bold text-gray-800 mb-5">
-              Select Custom Date Range
-            </h2>
+      <WeeklyFilterPopup
+        open={showWeeklyPopup}
+        onClose={() => setShowWeeklyPopup(false)}
+        onApply={handleWeeklyApply}
+        selectedEndDate={weeklyEndDate}
+      />
 
-            {/* START DATE */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-600 mb-2">
-                Start Date
-              </label>
-
-              <input
-                type="date"
-                value={customStartDate}
-                onChange={(e) => setCustomStartDate(e.target.value)}
-                className="w-full border border-gray-300 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-purple-500"
-              />
-            </div>
-
-            {/* END DATE */}
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-600 mb-2">
-                End Date
-              </label>
-
-              <input
-                type="date"
-                value={customEndDate}
-                onChange={(e) => setCustomEndDate(e.target.value)}
-                className="w-full border border-gray-300 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-purple-500"
-              />
-            </div>
-
-            {/* BUTTONS */}
-            <div className="flex justify-end gap-3">
-
-              <button
-                onClick={() => {
-                  setShowCustomPopup(false);
-                  setActiveTab("monthly");
-                }}
-                className="px-4 py-2 rounded-xl border border-gray-300 text-gray-600 hover:bg-gray-100"
-              >
-                Cancel
-              </button>
-
-              <button
-                onClick={() => {
-                  if (!customStartDate || !customEndDate) {
-                    return alert("Please select start and end date");
-                  }
-                  if (new Date(customEndDate) < new Date(customStartDate)) {
-                    return alert("End date cannot be before start date");
-                  }
-
-                  setShowCustomPopup(false);
-                }}
-                className="px-5 py-2 rounded-xl bg-purple-600 text-white hover:bg-purple-700"
-              >
-                Apply Filter
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <CustomDatePopup
+        open={showCustomPopup}
+        onClose={() => setShowCustomPopup(false)}
+        onApply={handleCustomApply}
+      />
     </div>
 
   );

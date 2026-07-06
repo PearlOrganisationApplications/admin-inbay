@@ -175,7 +175,7 @@ const User = () => {
           />
         </div>
         <div className="flex w-full md:w-auto gap-3">
-          <div className="relative w-full md:w-48">
+          {/* <div className="relative w-full md:w-48">
             <Filter
               className="absolute left-3 top-2.5 text-purple-500"
               size={18}
@@ -192,7 +192,7 @@ const User = () => {
                 </option>
               ))}
             </select>
-          </div>
+          </div> */}
           <select
             value={statusFilter}
             onChange={handleStatusFilter}

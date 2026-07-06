@@ -17,37 +17,42 @@ const ImageViewer = () => {
   }
 
   return (
-    <div className="w-full h-screen flex flex-col items-center justify-center bg-black">
+    <div className="h-screen bg-black flex flex-col">
 
-      <img
-        src={imageUrl}
-        alt="preview"
-        style={{
-          transform: `rotate(${rotation}deg)`,
-          transition: "0.3s",
-          maxHeight: "90vh",
-          maxWidth: "90vw",
-        }}
-      />
+      {/* Image Area */}
+      <div className="flex-1 flex items-center justify-center overflow-auto p-4">
+        <img
+          src={imageUrl}
+          alt="preview"
+          style={{
+            transform: `rotate(${rotation}deg)`,
+            transition: "0.3s ease",
+            maxWidth: "85%",
+            maxHeight: "85%",
+            objectFit: "contain",
+          }}
+        />
+      </div>
 
-      <div className="mt-4 flex gap-3">
+      {/* Bottom Controls */}
+      <div className="sticky bottom-0 w-full bg-black/80 backdrop-blur p-4 flex justify-center gap-3">
         <button
           onClick={() => setRotation((r) => r - 90)}
-          className="px-4 py-2 bg-white rounded"
+          className="px-4 py-2 bg-white rounded-lg"
         >
           ⟲ Rotate Left
         </button>
 
         <button
           onClick={() => setRotation((r) => r + 90)}
-          className="px-4 py-2 bg-white rounded"
+          className="px-4 py-2 bg-white rounded-lg"
         >
           ⟳ Rotate Right
         </button>
 
         <button
           onClick={() => navigate(-1)}
-          className="px-4 py-2 bg-red-500 text-white rounded"
+          className="px-4 py-2 bg-red-500 text-white rounded-lg"
         >
           Close
         </button>
