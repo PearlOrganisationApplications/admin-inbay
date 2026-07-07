@@ -139,14 +139,14 @@ const ReportFilters = ({
                 </div>
 
                 {/* Shift */}
-                <select className="h-12 rounded-2xl border border-gray-300 px-4">
+                {/* <select className="h-12 rounded-2xl border border-gray-300 px-4">
                     <option>All Shifts</option>
-                </select>
+                </select> */}
 
         
 
                 {/* Year + Reset */}
-                <div className="flex gap-3">
+                <div className="flex gap-3 ">
                     <button
                     onClick={handleResetFilters}
                     className="w-28 rounded-2xl bg-gray-100 hover:bg-gray-200 font-semibold transition flex items-center justify-center gap-2">

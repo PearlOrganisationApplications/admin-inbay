@@ -16,6 +16,7 @@ import {
   X,
   Download
 } from "lucide-react";
+import { fetchExpenseDetail, fetchInitialData, fetchReport } from "./expenseApis";
 
 const Expenses = () => {
   const [expenses, setExpenses] = useState([]);
@@ -35,77 +36,36 @@ const Expenses = () => {
 
   // const TOKEN = "293|0c9Zqwm4c3GUEolDbL4xUDIAmxOwIS5oMXJj27Ti5f332c16";
   const BASE_URL = "https://test.pearl-developer.com/Inbay_Innovations/public/api/admin/expenses";
-  useEffect(() => {
-    fetchInitialData(); // expenses list
-  }, []);
+
 
   useEffect(() => {
     fetchReport();
   }, [month, year, startDate, endDate, filterMode]);
 
 
+  useEffect(() => {
+    fetchInitialData(setExpenses, setLoading);
+  }, []);
 
-  const fetchInitialData = async () => {
-    setLoading(true);
+  useEffect(() => {
+    fetchReport(
+      month,
+      year,
+      startDate,
+      endDate,
+      filterMode,
+      setReport,
+      setLoading
+    );
+  }, [month, year, startDate, endDate, filterMode]);
 
-    try {
-      // 1. Expenses List
-      const token = localStorage.getItem("token");
-
-      const res = await fetch(BASE_URL, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-      const listData = await res.json();
-
-      if (listData.success) {
-        setExpenses(listData.data?.data || []);
-      }
-
-    } catch (error) {
-      console.error("Error fetching data:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-  const fetchReport = async () => {
-    setLoading(true);
-
-    try {
-      let url = "";
-
-      // 📆 DATE RANGE FILTER (priority high)
-      if (filterMode === "date" && startDate && endDate) {
-        url = `${BASE_URL}/report?start_date=${startDate}&end_date=${endDate}`;
-      }
-      // 📅 MONTH/YEAR FILTER (default)
-      else {
-        url = `${BASE_URL}/report?month=${month}&year=${year}`;
-      }
-
-      const token = localStorage.getItem("token");
-
-      const res = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-      const data = await res.json();
-
-      if (data.success) {
-        setReport(data);
-      }
-
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
+  const handleViewExpense = (id) => {
+    fetchExpenseDetail(
+      id,
+      setSelectedExpense,
+      setDetailLoading,
+      setIsModalOpen
+    );
   };
 
 
@@ -120,21 +80,21 @@ const Expenses = () => {
   };
 
 
-  const fetchExpenseDetail = async (id) => {
-    setDetailLoading(true);
-    setIsModalOpen(true);
-    try {
-      const res = await fetch(`${BASE_URL}/${id}`, {
-        headers: { Authorization: `Bearer ${TOKEN}` },
-      });
-      const data = await res.json();
-      if (data.success) setSelectedExpense(data.data);
-    } catch (error) {
-      console.error("Error fetching detail:", error);
-    } finally {
-      setDetailLoading(false);
-    }
-  };
+  // const fetchExpenseDetail = async (id) => {
+  //   setDetailLoading(true);
+  //   setIsModalOpen(true);
+  //   try {
+  //     const res = await fetch(`${BASE_URL}/${id}`, {
+  //       headers: { Authorization: `Bearer ${TOKEN}` },
+  //     });
+  //     const data = await res.json();
+  //     if (data.success) setSelectedExpense(data.data);
+  //   } catch (error) {
+  //     console.error("Error fetching detail:", error);
+  //   } finally {
+  //     setDetailLoading(false);
+  //   }
+  // };
 
   const getStatusColor = (status) => {
     switch (status.toLowerCase()) {
@@ -710,6 +670,14 @@ const Expenses = () => {
                           View
                         </button>
                       </td> */}
+                      <td className="px-6 py-4 text-center">
+                        <button
+                          onClick={() => handleViewExpense(item.expense_id)}
+                          className="text-purple-600 font-bold text-sm hover:underline"
+                        >
+                          View
+                        </button>
+                      </td>
                       <td className="px-6 py-4">
                         <div className="flex gap-2 flex-wrap">
                           {item.attachments?.length > 0 ? (

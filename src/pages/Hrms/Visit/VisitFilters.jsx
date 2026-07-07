@@ -142,19 +142,7 @@ const VisitFilters = ({
               </div>
             </div>
           )}
-        </div>
-
-        {/* Department */}
-
-        <select className="h-12 rounded-2xl border border-gray-300 px-4">
-          <option>All Departments</option>
-        </select>
-
-        {/* Report */}
-
-        <select className="h-12 rounded-2xl border border-gray-300 px-4">
-          <option>Current Report</option>
-        </select>
+        </div>    
 
         {/* Reset */}
 

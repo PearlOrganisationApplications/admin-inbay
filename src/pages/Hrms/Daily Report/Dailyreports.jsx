@@ -7,7 +7,7 @@ import { CustomDatePopup, DailyFilterPopup, MonthlyFilterPopup, WeeklyFilterPopu
 
 
 const Dailyreports = () => {
-   const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false);
+  const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false);
   const [data, setData] = useState([]); // API data state
   const [summary, setSummary] = useState({ total_employees: 0, total_present: 0, total_absent: 0 }); // Stats state
   const [loading, setLoading] = useState(false);
@@ -63,7 +63,7 @@ const Dailyreports = () => {
     return Number(localStorage.getItem("selectedYear")) || today.getFullYear();
   });
 
- 
+
 
 
   useEffect(() => {
@@ -105,7 +105,7 @@ const Dailyreports = () => {
     localStorage.setItem("selectedYear", selectedYear);
   }, [selectedYear]);
 
-   useEffect(() => {
+  useEffect(() => {
     localStorage.setItem("reportType", reportType);
   }, [reportType]);
 
@@ -178,7 +178,7 @@ const Dailyreports = () => {
       </button>
     );
   };
- 
+
   useEffect(() => {
     fetchReport(
       reportType,
@@ -311,6 +311,16 @@ const Dailyreports = () => {
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
 
 
+
+  const pageLimit = 5;
+
+  const startPage = Math.floor((currentPage - 1) / pageLimit) * pageLimit + 1;
+  const endPage = Math.min(startPage + pageLimit - 1, totalPages);
+
+  const pageNumbers = [];
+  for (let i = startPage; i <= endPage; i++) {
+    pageNumbers.push(i);
+  }
 
   const handleExport = () => {
     if (!rawResponse?.data?.length) return;
@@ -619,24 +629,33 @@ const Dailyreports = () => {
       {/* 4. PAGINATION */}
       <div className="flex justify-center items-center gap-2 mt-4 pb-4 shrink-0 bg-gray-50">
         <button
-          onClick={() => setCurrentPage((prev) => prev - 1)}
+          onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
           disabled={currentPage === 1}
           className="px-3 py-1 rounded-md border bg-white text-sm disabled:opacity-50"
-        >Prev</button>
-        {[...Array(totalPages)].map((_, i) => (
+        >
+          Prev
+        </button>
+
+        {pageNumbers.map((page) => (
           <button
-            key={i}
-            onClick={() => setCurrentPage(i + 1)}
-            className={`px-3 py-1 rounded-md text-sm ${currentPage === i + 1 ? "bg-[#8b2cf5] text-white" : "bg-white border"}`}
+            key={page}
+            onClick={() => setCurrentPage(page)}
+            className={`px-3 py-1 rounded-md text-sm ${currentPage === page
+                ? "bg-[#8b2cf5] text-white"
+                : "bg-white border"
+              }`}
           >
-            {i + 1}
+            {page}
           </button>
         ))}
+
         <button
-          onClick={() => setCurrentPage((prev) => prev + 1)}
+          onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
           disabled={currentPage === totalPages}
           className="px-3 py-1 rounded-md border bg-white text-sm disabled:opacity-50"
-        >Next</button>
+        >
+          Next
+        </button>
       </div>
       <CustomDatePopup
         open={showCustomPopup}

@@ -629,7 +629,6 @@ const Attendance = () => {
         // tabs
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        setShowCustomPopup={setShowCustomPopup}
 
         // date filters
         selectedDay={selectedDay}
