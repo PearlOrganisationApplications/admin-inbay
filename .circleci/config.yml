@@ -1,0 +1,32 @@
+version: 2.1
+
+orbs:
+  node: circleci/node@5
+
+jobs:
+  deploy:
+    docker:
+      - image: cimg/base:stable
+    steps:
+      - checkout
+
+      - attach_workspace:
+          at: .
+
+      - add_ssh_keys
+
+      - run:
+          name: Connect to Server
+          command: |
+            ssh -o StrictHostKeyChecking=no -p $SSH_PORT $SSH_USER@$SSH_HOST "echo Connected successfully"
+
+      - run:
+          name: Run Deployment Script
+          command: |
+            cd $location
+            ./deploy.sh
+
+workflows:
+  deploy-workflow:
+    jobs:
+      - deploy
