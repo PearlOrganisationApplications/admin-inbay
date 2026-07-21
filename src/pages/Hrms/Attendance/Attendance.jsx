@@ -865,18 +865,28 @@ const Attendance = () => {
             </button>
 
             <div className="flex items-center gap-1">
-              {[...Array(totalPages)].map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setCurrentPage(i + 1)}
-                  className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors ${currentPage === i + 1
-                    ? "bg-purple-600 text-white shadow-sm"
-                    : "text-gray-600 hover:bg-gray-100"
-                    }`}
-                >
-                  {i + 1}
-                </button>
-              ))}
+              {Array.from(
+                {
+                  length: Math.min(5, totalPages - Math.floor((currentPage - 1) / 5) * 5),
+                },
+                (_, i) => {
+                  const page =
+                    Math.floor((currentPage - 1) / 5) * 5 + i + 1;
+
+                  return (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors ${currentPage === page
+                          ? "bg-purple-600 text-white shadow-sm"
+                          : "text-gray-600 hover:bg-gray-100"
+                        }`}
+                    >
+                      {page}
+                    </button>
+                  );
+                }
+              )}
             </div>
 
             <button

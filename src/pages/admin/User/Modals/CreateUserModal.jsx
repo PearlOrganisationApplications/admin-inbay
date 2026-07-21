@@ -1,6 +1,6 @@
 import React from "react";
-import { X } from "lucide-react";
-import { handleCreateUser, fetchUsers } from "../userPageApis"; // path apne hisab se
+import { X, User, Mail, Lock, MapPin, Briefcase, IndianRupee } from "lucide-react";
+import { handleCreateUser, fetchUsers } from "../userPageApis";
 
 const CreateUserModal = ({
     isOpen,
@@ -16,17 +16,23 @@ const CreateUserModal = ({
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all">
-                <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-purple-50">
-                    <h2 className="text-xl font-bold text-gray-800">
-                        Create New User
-                    </h2>
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                {/* Header */}
+                <div className="px-6 py-4 flex items-center justify-between border-b bg-gradient-to-r from-purple-50 to-white">
+                    <div>
+                        <h2 className="text-xl font-bold text-gray-800">
+                            Create New User
+                        </h2>
+                        <p className="text-sm text-gray-500">
+                            Fill in the details below
+                        </p>
+                    </div>
 
                     <button
                         onClick={() => setIsModalOpen(false)}
-                        className="text-gray-400 hover:text-gray-600 transition-colors"
+                        className="p-2 rounded-lg hover:bg-gray-100 transition"
                     >
-                        <X size={24} />
+                        <X size={22} />
                     </button>
                 </div>
 
@@ -43,10 +49,9 @@ const CreateUserModal = ({
                             () => fetchUsers(setUsers)
                         )
                     }
-
-
-                    className="p-6 space-y-4"
+                    className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5"
                 >
+                    {/* Hidden Inputs */}
                     <input
                         type="text"
                         name="username"
@@ -60,109 +65,188 @@ const CreateUserModal = ({
                         autoComplete="current-password"
                         style={{ display: "none" }}
                     />
+
+                    {/* Name */}
                     <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-1">
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
                             Full Name
                         </label>
 
-                        <input
-                            required
-                            type="text"
-                            name="create_user_name"
-                            autoComplete="off"
+                        <div className="relative">
+                            <User
+                                size={18}
+                                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                            />
 
-                            placeholder="Enter name"
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none transition-all"
-                            value={formData.name}
-                            onChange={(e) =>
-                                setFormData({ ...formData, name: e.target.value })
-                            }
-                        />
+                            <input
+                                required
+                                type="text"
+                                autoComplete="off"
+                                placeholder="Enter full name"
+                                value={formData.name}
+                                onChange={(e) =>
+                                    setFormData({
+                                        ...formData,
+                                        name: e.target.value,
+                                    })
+                                }
+                                className="w-full pl-10 pr-4 py-2.5 text-sm border rounded-lg border-gray-300 focus:ring-2 focus:ring-purple-500 outline-none"
+                            />
+                        </div>
                     </div>
 
+                    {/* Email */}
                     <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-1">
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
                             Gmail Address
                         </label>
 
-                        <input
-                            required
-                            type="email"
-                            name="create_user_email"
-                            autoComplete="new-email"
-                            placeholder="example@gmail.com"
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none transition-all"
-                            value={formData.email}
-                            onChange={(e) =>
-                                setFormData({ ...formData, email: e.target.value })
-                            }
-                        />
+                        <div className="relative">
+                            <Mail
+                                size={18}
+                                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                            />
+
+                            <input
+                                required
+                                type="email"
+                                autoComplete="off"
+                                placeholder="example@gmail.com"
+                                value={formData.email}
+                                onChange={(e) =>
+                                    setFormData({
+                                        ...formData,
+                                        email: e.target.value,
+                                    })
+                                }
+                                className="w-full pl-10 pr-4 py-2.5 text-sm border rounded-lg border-gray-300 focus:ring-2 focus:ring-purple-500 outline-none"
+                            />
+                        </div>
                     </div>
 
+                    {/* Password */}
                     <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-1">
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
                             Password
                         </label>
 
-                        <input
-                            required
-                            type="password"
-                            name="create_user_password"
-                            autoComplete="new-password"
-                            placeholder="••••••••"
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none transition-all"
-                            value={formData.password}
-                            onChange={(e) =>
-                                setFormData({ ...formData, password: e.target.value })
-                            }
-                        />
+                        <div className="relative">
+                            <Lock
+                                size={18}
+                                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                            />
+
+                            <input
+                                required
+                                type="password"
+                                autoComplete="new-password"
+                                placeholder="••••••••"
+                                value={formData.password}
+                                onChange={(e) =>
+                                    setFormData({
+                                        ...formData,
+                                        password: e.target.value,
+                                    })
+                                }
+                                className="w-full pl-10 pr-4 py-2.5 text-sm border rounded-lg border-gray-300 focus:ring-2 focus:ring-purple-500 outline-none"
+                            />
+                        </div>
                     </div>
 
+                    {/* Headquarters */}
                     <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-1">
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
                             Headquarters
                         </label>
 
-                        <input
-                            required
-                            type="text"
-                            autoComplete="off"
-                            placeholder="Enter headquarters"
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none transition-all"
-                            value={formData.hq}
-                            onChange={(e) =>
-                                setFormData({ ...formData, hq: e.target.value })
-                            }
-                        />
+                        <div className="relative">
+                            <MapPin
+                                size={18}
+                                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                            />
+
+                            <input
+                                required
+                                type="text"
+                                autoComplete="off"
+                                placeholder="Enter headquarters"
+                                value={formData.hq}
+                                onChange={(e) =>
+                                    setFormData({
+                                        ...formData,
+                                        hq: e.target.value,
+                                    })
+                                }
+                                className="w-full pl-10 pr-4 py-2.5 text-sm border rounded-lg border-gray-300 focus:ring-2 focus:ring-purple-500 outline-none"
+                            />
+                        </div>
                     </div>
 
+                    {/* Per KM Rate */}
                     <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-1">
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
                             Per KM Rate
                         </label>
 
-                        <input
-                            required
-                            type="number"
-                            step="0.01"
-                            placeholder="e.g. 12"
-                            autoComplete="off"
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none transition-all"
-                            value={formData.per_km_rate}
-                            onChange={(e) =>
-                                setFormData({
-                                    ...formData,
-                                    per_km_rate: e.target.value,
-                                })
-                            }
-                        />
+                        <div className="relative">
+                            <IndianRupee
+                                size={18}
+                                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                            />
+
+                            <input
+                                required
+                                type="number"
+                                step="0.01"
+                                autoComplete="off"
+                                placeholder="12"
+                                value={formData.per_km_rate}
+                                onChange={(e) =>
+                                    setFormData({
+                                        ...formData,
+                                        per_km_rate: e.target.value,
+                                    })
+                                }
+                                className="w-full pl-10 pr-4 py-2.5 text-sm border rounded-lg border-gray-300 focus:ring-2 focus:ring-purple-500 outline-none"
+                            />
+                        </div>
                     </div>
 
-                    <div className="pt-4 flex gap-3">
+                    {/* Designation */}
+                    <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            Designation
+                        </label>
+
+                        <div className="relative">
+                            <Briefcase
+                                size={18}
+                                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                            />
+
+                            <input
+                                required
+                                type="text"
+                                autoComplete="off"
+                                placeholder="Software Engineer"
+                                value={formData.designation}
+                                onChange={(e) =>
+                                    setFormData({
+                                        ...formData,
+                                        designation: e.target.value,
+                                    })
+                                }
+                                className="w-full pl-10 pr-4 py-2.5 text-sm border rounded-lg border-gray-300 focus:ring-2 focus:ring-purple-500 outline-none"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Buttons */}
+                    <div className="md:col-span-2 flex justify-end gap-3 border-t pt-5 mt-2">
                         <button
                             type="button"
                             onClick={() => setIsModalOpen(false)}
-                            className="flex-1 px-4 py-2 border border-gray-300 text-gray-600 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+                            className="px-6 py-2.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition"
                         >
                             Cancel
                         </button>
@@ -170,7 +254,7 @@ const CreateUserModal = ({
                         <button
                             type="submit"
                             disabled={isSubmitting}
-                            className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors shadow-md disabled:opacity-50"
+                            className="px-6 py-2.5 rounded-lg bg-purple-600 text-white font-medium hover:bg-purple-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {isSubmitting ? "Creating..." : "Create User"}
                         </button>

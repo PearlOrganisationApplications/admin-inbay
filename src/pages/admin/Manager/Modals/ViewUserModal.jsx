@@ -10,182 +10,189 @@ const ViewUserModal = ({
     if (!isOpen || !selectedManagerData) return null;
 
     return (
-        <div className="fixed  inset-0 z-[100] flex items-center justify-center bg-slate-950/40 backdrop-blur-md p-4 animate-fadeIn">
-            <div className="w-full m-10 max-w-md rounded-3xl overflow-hidden shadow-2xl bg-white border border-slate-100">
-                {/* Header */}
-                <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/70">
-                    <div>
-                        <h2 className="text-lg font-bold">
-                            {selectedManagerData?.manager_name}
-                        </h2>
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/40 backdrop-blur-sm p-4">
+    <div className="w-full max-w-lg max-h-[85vh] bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden">
 
-                        <p className="text-sm text-gray-500">
-                            Manager ID : {selectedManagerData?.manager_id}
-                        </p>
-                    </div>
-                    <button
-                        type="button"
-                        onClick={() => setViewModalOpen(false)}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
-                    >
-                        <X size={18} />
-                    </button>
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b bg-slate-50">
+            <div>
+                <h2 className="text-lg font-bold text-slate-900">
+                    {selectedManagerData?.manager_name}
+                </h2>
+                <p className="text-xs text-slate-500">
+                    Manager ID : {selectedManagerData?.manager_id}
+                </p>
+            </div>
+
+            <button
+                onClick={() => setViewModalOpen(false)}
+                className="p-2 rounded-lg hover:bg-slate-200 transition"
+            >
+                <X size={18} />
+            </button>
+        </div>
+
+        {/* Scrollable Body */}
+        <div className="flex-1 overflow-y-auto p-4">
+
+            {/* Manager Summary */}
+            <div className="mb-4 rounded-xl bg-purple-50 border border-purple-100 p-3">
+                <h3 className="font-semibold text-slate-900 text-base">
+                    {selectedManagerData?.manager_name}
+                </h3>
+
+                <div className="flex justify-between mt-2 text-sm">
+                    <span className="text-slate-600">
+                        <strong>ID:</strong> {selectedManagerData?.manager_id}
+                    </span>
+
+                    <span className="text-slate-600">
+                        <strong>Users:</strong>{" "}
+                        {selectedManagerData?.assigned_users?.length || 0}
+                    </span>
                 </div>
+            </div>
 
-                <div className="p-6">
-                    {/* Manager Info */}
-                    <div className="mb-6 p-4 rounded-2xl bg-slate-50 border border-slate-200">
-                        <h2 className="text-lg font-bold text-slate-900">
-                            {selectedManagerData?.manager_name || "Manager"}
-                        </h2>
+            {/* Assigned Users */}
+            <div className="space-y-3">
 
-                        <div className="mt-2 flex gap-6 text-sm text-slate-600">
-                            <p>
-                                <span className="font-semibold">Manager ID :</span>{" "}
-                                {selectedManagerData?.manager_id ?? "—"}
-                            </p>
+                {selectedManagerData?.assigned_users?.length > 0 ? (
 
-                            <p>
-                                <span className="font-semibold">Assigned Users :</span>{" "}
-                                {selectedManagerData?.assigned_users?.length || 0}
-                            </p>
-                        </div>
-                    </div>
+                    selectedManagerData.assigned_users.map((user) => (
 
-                    {/* Assigned Users */}
-                    <div className="space-y-5 max-h-[500px] overflow-y-auto pr-2">
+                        <div
+                            key={user.id}
+                            className="border rounded-xl p-3 bg-white shadow-sm"
+                        >
 
-                        {selectedManagerData?.assigned_users?.length > 0 ? (
+                            {/* Top */}
+                            <div className="flex gap-3">
 
-                            selectedManagerData.assigned_users.map((user) => (
+                                <img
+                                    src={
+                                        user?.profile_image
+                                            ? `https://test.pearl-developer.com/Inbay_Innovations/public/${user.profile_image}`
+                                            : "https://via.placeholder.com/80"
+                                    }
+                                    alt={user.name}
+                                    className="w-12 h-12 rounded-lg object-cover border"
+                                    onError={(e) => {
+                                        e.target.src =
+                                            "https://via.placeholder.com/80";
+                                    }}
+                                />
 
-                                <div
-                                    key={user.id}
-                                    className="border rounded-2xl p-4 bg-white shadow-sm"
-                                >
+                                <div className="flex-1 min-w-0">
 
-                                    <div className="flex gap-4">
+                                    <h3 className="font-semibold text-slate-900 truncate">
+                                        {user.name}
+                                    </h3>
 
-                                        <img
-                                            src={
-                                                user?.profile_image
-                                                    ? `https://test.pearl-developer.com/Inbay_Innovations/public/${user.profile_image}`
-                                                    : ""
-                                            }
-                                            alt={user.name}
-                                            className="w-16 h-16 rounded-xl object-cover border"
-                                            onError={(e) => {
-                                                e.target.src = "https://via.placeholder.com/120";
-                                            }}
-                                        />
+                                    <p className="text-xs text-slate-500 truncate">
+                                        {user.email}
+                                    </p>
 
-                                        <div className="flex-1">
+                                    <div className="flex items-center gap-2 mt-2 flex-wrap">
 
-                                            <h3 className="font-bold text-slate-900">
-                                                {user.name}
-                                            </h3>
-
-                                            <p className="text-sm text-slate-500">
-                                                {user.email}
-                                            </p>
-
-                                            <span
-                                                className={`inline-block mt-2 px-2 py-1 rounded-md text-xs font-semibold ${Number(user.is_active) === 1
+                                        <span
+                                            className={`px-2 py-0.5 rounded-full text-[11px] font-medium ${
+                                                Number(user.is_active) === 1
                                                     ? "bg-green-100 text-green-700"
                                                     : "bg-red-100 text-red-700"
-                                                    }`}
-                                            >
-                                                {Number(user.is_active) === 1
-                                                    ? "Active"
-                                                    : "Inactive"}
-                                            </span>
+                                            }`}
+                                        >
+                                            {Number(user.is_active) === 1
+                                                ? "Active"
+                                                : "Inactive"}
+                                        </span>
 
-                                        </div>
-
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-4 mt-5 text-sm">
-
-                                        <div>
-                                            <p className="text-slate-400">User ID</p>
-                                            <p className="font-semibold">{user.id}</p>
-                                        </div>
-
-                                        <div>
-                                            <p className="text-slate-400">Role</p>
-                                            <p className="font-semibold">
-                                                {user.role || "—"}
-                                            </p>
-                                        </div>
-
-                                        <div>
-                                            <p className="text-slate-400">Designation</p>
-                                            <p className="font-semibold">
-                                                {user.designation || "—"}
-                                            </p>
-                                        </div>
-
-                                        <div>
-                                            <p className="text-slate-400">Team</p>
-                                            <p className="font-semibold">
-                                                {user.team || "—"}
-                                            </p>
-                                        </div>
-
-                                        <div>
-                                            <p className="text-slate-400">State</p>
-                                            <p className="font-semibold">
-                                                {user.state || "—"}
-                                            </p>
-                                        </div>
-
-                                        <div>
-                                            <p className="text-slate-400">Per KM Rate</p>
-                                            <p className="font-semibold">
-                                                ₹{user.per_km_rate || 0}/km
-                                            </p>
-                                        </div>
-
-                                        <div>
-                                            <p className="text-slate-400">Created</p>
-                                            <p className="font-semibold">
-                                                {user.created_at || "—"}
-                                            </p>
-                                        </div>
-
-                                        <div>
-                                            <p className="text-slate-400">Updated</p>
-                                            <p className="font-semibold">
-                                                {user.updated_at || "—"}
-                                            </p>
-                                        </div>
+                                        <span className="text-xs bg-slate-100 px-2 py-0.5 rounded-full">
+                                            {user.role || "N/A"}
+                                        </span>
 
                                     </div>
 
                                 </div>
 
-                            ))
-
-                        ) : (
-
-                            <div className="text-center py-10 text-slate-500">
-                                No assigned users found.
                             </div>
 
-                        )}
+                            {/* Details */}
+                            <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-3 text-xs">
 
+                                <div>
+                                    <p className="text-slate-400">User ID</p>
+                                    <p className="font-medium">{user.id}</p>
+                                </div>
+
+                                <div>
+                                    <p className="text-slate-400">Designation</p>
+                                    <p className="font-medium">
+                                        {user.designation || "—"}
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <p className="text-slate-400">Team</p>
+                                    <p className="font-medium">
+                                        {user.team || "—"}
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <p className="text-slate-400">State</p>
+                                    <p className="font-medium">
+                                        {user.state || "—"}
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <p className="text-slate-400">Rate</p>
+                                    <p className="font-medium">
+                                        ₹{user.per_km_rate || 0}/km
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <p className="text-slate-400">Created</p>
+                                    <p className="font-medium truncate">
+                                        {user.created_at
+                                            ? new Date(
+                                                  user.created_at
+                                              ).toLocaleDateString()
+                                            : "—"}
+                                    </p>
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    ))
+
+                ) : (
+
+                    <div className="text-center py-10 text-slate-500 text-sm">
+                        No assigned users found.
                     </div>
 
-                    <button
-                        onClick={() => setViewModalOpen(false)}
-                        className="w-full mt-6 py-3 rounded-xl bg-purple-600 text-white font-semibold hover:bg-purple-700 transition"
-                    >
-                        Close
-                    </button>
+                )}
 
-                </div>
             </div>
+
         </div>
+
+        {/* Footer */}
+        <div className="border-t bg-white p-4">
+            <button
+                onClick={() => setViewModalOpen(false)}
+                className="w-full py-2.5 rounded-lg bg-purple-600 text-white font-semibold hover:bg-purple-700 transition"
+            >
+                Close
+            </button>
+        </div>
+
+    </div>
+</div>
     );
 };
 
