@@ -76,15 +76,7 @@ export default function Header() {
            It prevents the search bar from going under your Sidebar Toggle button.
         */}
         <div className="ml-12 md:ml-0 flex items-center w-full max-w-[320px]">
-          <div className="relative w-full">
-            <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
-            <input
-              type="text"
-              // On very small screens, we hide the placeholder to save space
-              placeholder="Search..."
-              className="w-full pl-9 pr-4 py-1.5 md:py-2 rounded-lg bg-gray-100 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm transition-all"
-            />
-          </div>
+         
         </div>
       </div>
 

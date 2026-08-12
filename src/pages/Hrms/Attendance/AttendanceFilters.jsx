@@ -92,7 +92,7 @@ const AttendanceFilters = ({
             {/* Tabs */}
 
             <div className="flex flex-wrap gap-2 mb-5">
-                {["daily", "weekly", "monthly", "custom"].map((tab) => (
+                {[ "monthly", "custom"].map((tab) => (
                     <button
                         key={tab}
 
