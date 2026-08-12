@@ -53,7 +53,7 @@ const Attendance = () => {
   const [showCustomPopup, setShowCustomPopup] = useState(false);
 
   const [employeeSearch, setEmployeeSearch] = useState(() =>
-    readStored(STORAGE_KEYS.employeeSearch, "")
+    readStored(STORAGE_KEYS.employeeSearch, ""),
   );
   const [selectedEmployees, setSelectedEmployees] = useState(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.selectedEmployees);
@@ -62,23 +62,23 @@ const Attendance = () => {
   const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false);
 
   const [shiftFilter, setShiftFilter] = useState(() =>
-    readStored(STORAGE_KEYS.shiftFilter, "")
+    readStored(STORAGE_KEYS.shiftFilter, ""),
   );
 
   const [month, setMonth] = useState(() =>
-    Number(readStored(STORAGE_KEYS.month, today.getMonth() + 1))
+    Number(readStored(STORAGE_KEYS.month, today.getMonth() + 1)),
   );
   const [year, setYear] = useState(() =>
-    Number(readStored(STORAGE_KEYS.year, today.getFullYear()))
+    Number(readStored(STORAGE_KEYS.year, today.getFullYear())),
   );
   const [activeTab, setActiveTab] = useState(() =>
-    readStored(STORAGE_KEYS.activeTab, "monthly")
+    readStored(STORAGE_KEYS.activeTab, "monthly"),
   );
   const [customStartDate, setCustomStartDate] = useState(() =>
-    readStored(STORAGE_KEYS.customStartDate, "")
+    readStored(STORAGE_KEYS.customStartDate, ""),
   );
   const [customEndDate, setCustomEndDate] = useState(() =>
-    readStored(STORAGE_KEYS.customEndDate, "")
+    readStored(STORAGE_KEYS.customEndDate, ""),
   );
 
   const [summary, setSummary] = useState({
@@ -98,7 +98,7 @@ const Attendance = () => {
   useEffect(() => {
     localStorage.setItem(
       STORAGE_KEYS.selectedEmployees,
-      JSON.stringify(selectedEmployees)
+      JSON.stringify(selectedEmployees),
     );
   }, [selectedEmployees]);
 
@@ -169,8 +169,8 @@ const Attendance = () => {
         null,
         setRawResponse,
         setData,
-        setSummary
-      )
+        setSummary,
+      ),
     ).finally(() => {
       if (isMounted) setIsLoading(false);
     });
@@ -183,7 +183,7 @@ const Attendance = () => {
   // ---- derived data ----
   const uniqueShifts = useMemo(() => {
     const shifts = data.map(
-      (item) => `${item.scheduledStart} - ${item.scheduledEnd}`
+      (item) => `${item.scheduledStart} - ${item.scheduledEnd}`,
     );
     return [...new Set(shifts)];
   }, [data]);
@@ -191,8 +191,7 @@ const Attendance = () => {
   const filteredData = useMemo(() => {
     return data.filter((item) => {
       const matchesEmployee =
-        selectedEmployees.length === 0 ||
-        selectedEmployees.includes(item.name);
+        selectedEmployees.length === 0 || selectedEmployees.includes(item.name);
 
       const itemShift = `${item.scheduledStart} - ${item.scheduledEnd}`;
       const matchesShift = shiftFilter === "" || itemShift === shiftFilter;
@@ -214,14 +213,14 @@ const Attendance = () => {
   }, [data]);
 
   const filteredEmployeeOptions = uniqueEmployees.filter((name) =>
-    name.toLowerCase().includes(employeeSearch.toLowerCase())
+    name.toLowerCase().includes(employeeSearch.toLowerCase()),
   );
 
   const handleEmployeeSelect = (employeeName) => {
     setSelectedEmployees((prev) =>
       prev.includes(employeeName)
         ? prev.filter((item) => item !== employeeName)
-        : [...prev, employeeName]
+        : [...prev, employeeName],
     );
     setCurrentPage(1);
   };
@@ -230,14 +229,22 @@ const Attendance = () => {
     setSelectedEmployees(
       selectedEmployees.length === uniqueEmployees.length
         ? []
-        : uniqueEmployees
+        : uniqueEmployees,
     );
     setCurrentPage(1);
   };
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [activeTab, month, year, customStartDate, customEndDate, shiftFilter, selectedEmployees]);
+  }, [
+    activeTab,
+    month,
+    year,
+    customStartDate,
+    customEndDate,
+    shiftFilter,
+    selectedEmployees,
+  ]);
 
   const totalEmployees = summary.total_employees;
   const totalPresent = summary.total_present;
@@ -246,7 +253,7 @@ const Attendance = () => {
   const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE) || 1;
   const paginatedData = filteredData.slice(
     (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
+    currentPage * ITEMS_PER_PAGE,
   );
 
   const handleShiftFilter = (e) => {
@@ -283,27 +290,49 @@ const Attendance = () => {
     const exportData = rawResponse?.data
       ? rawResponse.data
       : rawResponse?.employees
-      ? [
-          {
-            date: rawResponse.date,
-            day: rawResponse.day,
-            summary: rawResponse.summary,
-            employees: rawResponse.employees,
-          },
-        ]
-      : [];
+        ? [
+            {
+              date: rawResponse.date,
+              day: rawResponse.day,
+              summary: rawResponse.summary,
+              employees: rawResponse.employees,
+            },
+          ]
+        : [];
 
     if (!exportData.length) {
       return alert("No data to export!");
     }
 
     const headers = [
-      "Date", "Day", "Name", "Email", "Designation", "Reporting To", "HQ",
-      "Status", "Present", "Scheduled Timing", "Check In", "Check Out",
-      "Total Hours", "Start Location", "End Location", "GPS KM",
-      "Farmer Meeting", "Field Visit", "Visit Schedule", "Visit Complete",
-      "Morning Remark", "Evening Remark", "General Remark", "Selfie IN",
-      "Selfie OUT", "Speedometer IN", "Speedometer OUT", "Signature IN",
+      "Date",
+      "Day",
+      "Name",
+      "Email",
+      "Designation",
+      "Reporting To",
+      "HQ",
+      "Status",
+      "Present",
+      "Scheduled Timing",
+      "Check In",
+      "Check Out",
+      "Total Hours",
+      "Start Location",
+      "End Location",
+      "GPS KM",
+      "Farmer Meeting",
+      "Field Visit",
+      "Visit Schedule",
+      "Visit Complete",
+      "Morning Remark",
+      "Evening Remark",
+      "General Remark",
+      "Selfie IN",
+      "Selfie OUT",
+      "Speedometer IN",
+      "Speedometer OUT",
+      "Signature IN",
       "Signature OUT",
     ].join(",");
 
@@ -316,56 +345,97 @@ const Attendance = () => {
       if (!dayData.employees || dayData.employees.length === 0) {
         rows.push(
           toRow([
-            dayData.date, dayData.day, "", "NO EMPLOYEE RECORD", "", "", "",
-            "", "Absent", "No", "", "", "", "", "", "", "", "", "", "", "",
-            "", "", "", "", "", "", "", "",
-          ])
+            dayData.date,
+            dayData.day,
+            "",
+            "NO EMPLOYEE RECORD",
+            "",
+            "",
+            "",
+            "",
+            "Absent",
+            "No",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+          ]),
         );
         return;
       }
 
-      dayData.employees.forEach((emp) => {
-        const images = emp.attendance_images || {};
-        const remarks = emp.remarks || {};
-        const tracking = emp.time_tracking || {};
-        const travel = emp.travel_details || {};
-        const visits = emp.visit_details || {};
+      dayData.employees
+        .filter((emp) => {
+          const matchesEmployee =
+            selectedEmployees.length === 0 ||
+            selectedEmployees.includes(emp.name);
 
-        rows.push(
-          toRow([
-            emp.date || dayData.date || "",
-            emp.day || dayData.day || "",
-            emp.name || "",
-            emp.email || "",
-            emp.designation || "",
-            emp.reporting_to || "",
-            emp.hq || "",
-            emp.status || "",
-            emp.present ? "Yes" : "No",
-            tracking.scheduled || "",
-            tracking.check_in || "",
-            tracking.check_out || "",
-            tracking.total_hours || "",
-            travel.start_location || "",
-            travel.end_location || "",
-            travel.gps_km || "",
-            visits.farmer_meeting || 0,
-            visits.field_visit || 0,
-            visits.visit_schedule || 0,
-            visits.visit_complete || 0,
-            remarks.morning || "",
-            remarks.evening || "",
-            remarks.general || "",
-            images.selfie_photo_in || "",
-            images.selfie_photo_out || "",
-            images.speedometer_photo_in || "",
-            images.speedometer_photo_out || "",
-            images.signature_in || "",
-            images.signature_out || "",
-          ])
-        );
-      });
+          const empShift = emp.time_tracking?.scheduled || "";
+          const matchesShift = shiftFilter === "" || empShift === shiftFilter;
+
+          return matchesEmployee && matchesShift;
+        })
+        .forEach((emp) => {
+          const images = emp.attendance_images || {};
+          const remarks = emp.remarks || {};
+          const tracking = emp.time_tracking || {};
+          const travel = emp.travel_details || {};
+          const visits = emp.visit_details || {};
+
+          rows.push(
+            toRow([
+              emp.date || dayData.date || "",
+              emp.day || dayData.day || "",
+              emp.name || "",
+              emp.email || "",
+              emp.designation || "",
+              emp.reporting_to || "",
+              emp.hq || "",
+              emp.status || "",
+              emp.present ? "Yes" : "No",
+              tracking.scheduled || "",
+              tracking.check_in || "",
+              tracking.check_out || "",
+              tracking.total_hours || "",
+              travel.start_location || "",
+              travel.end_location || "",
+              travel.gps_km || "",
+              visits.farmer_meeting || 0,
+              visits.field_visit || 0,
+              visits.visit_schedule || 0,
+              visits.visit_complete || 0,
+              remarks.morning || "",
+              remarks.evening || "",
+              remarks.general || "",
+              images.selfie_photo_in || "",
+              images.selfie_photo_out || "",
+              images.speedometer_photo_in || "",
+              images.speedometer_photo_out || "",
+              images.signature_in || "",
+              images.signature_out || "",
+            ]),
+          );
+        });
     });
+
+    if (!rows.length) {
+      return alert("No matching records to export for the current filters!");
+    }
 
     const csvContent = [headers, ...rows].join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -410,8 +480,12 @@ const Attendance = () => {
       {/* TOP HEADER */}
       <div className="bg-white px-6 py-4 shadow-sm border-b border-gray-200 flex justify-between items-center z-10 flex-shrink-0">
         <div>
-          <h2 className="text-2xl font-extrabold text-gray-800">Attendance Logs</h2>
-          <p className="text-sm text-gray-500 mt-1">Manage and track employee attendance</p>
+          <h2 className="text-2xl font-extrabold text-gray-800">
+            Attendance Logs
+          </h2>
+          <p className="text-sm text-gray-500 mt-1">
+            Manage and track employee attendance
+          </p>
         </div>
 
         <button
@@ -524,7 +598,11 @@ const Attendance = () => {
             <span className="font-medium text-gray-900">
               {Math.min(currentPage * ITEMS_PER_PAGE, filteredData.length)}
             </span>{" "}
-            of <span className="font-medium text-gray-900">{filteredData.length}</span> results
+            of{" "}
+            <span className="font-medium text-gray-900">
+              {filteredData.length}
+            </span>{" "}
+            results
           </p>
 
           <div className="flex items-center gap-2">
@@ -538,7 +616,12 @@ const Attendance = () => {
 
             <div className="flex items-center gap-1">
               {Array.from(
-                { length: Math.min(5, totalPages - Math.floor((currentPage - 1) / 5) * 5) },
+                {
+                  length: Math.min(
+                    5,
+                    totalPages - Math.floor((currentPage - 1) / 5) * 5,
+                  ),
+                },
                 (_, i) => {
                   const page = Math.floor((currentPage - 1) / 5) * 5 + i + 1;
                   return (
@@ -554,12 +637,14 @@ const Attendance = () => {
                       {page}
                     </button>
                   );
-                }
+                },
               )}
             </div>
 
             <button
-              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+              onClick={() =>
+                setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+              }
               disabled={currentPage === totalPages}
               className="p-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center"
             >
@@ -590,7 +675,9 @@ const Attendance = () => {
 
 const SummaryCard = ({ icon, iconBg, iconColor, label, value, isLoading }) => (
   <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center gap-4 transition-shadow hover:shadow-md">
-    <div className={`w-12 h-12 rounded-full ${iconBg} flex items-center justify-center ${iconColor} transition-transform duration-200`}>
+    <div
+      className={`w-12 h-12 rounded-full ${iconBg} flex items-center justify-center ${iconColor} transition-transform duration-200`}
+    >
       {icon}
     </div>
     <div>
@@ -598,7 +685,9 @@ const SummaryCard = ({ icon, iconBg, iconColor, label, value, isLoading }) => (
       {isLoading ? (
         <div className="h-7 w-14 rounded skeleton mt-1" />
       ) : (
-        <h3 className="text-2xl font-extrabold text-gray-900 fade-in">{value}</h3>
+        <h3 className="text-2xl font-extrabold text-gray-900 fade-in">
+          {value}
+        </h3>
       )}
     </div>
   </div>
@@ -607,7 +696,9 @@ const SummaryCard = ({ icon, iconBg, iconColor, label, value, isLoading }) => (
 const LoadingState = () => (
   <div className="flex flex-col items-center justify-center gap-4 py-24 bg-white rounded-2xl border border-gray-100 shadow-sm fade-in">
     <Loader2 size={32} className="text-purple-600 animate-spin" />
-    <p className="text-gray-500 text-sm font-medium">Loading attendance records…</p>
+    <p className="text-gray-500 text-sm font-medium">
+      Loading attendance records…
+    </p>
   </div>
 );
 
@@ -636,7 +727,8 @@ const AttendanceCard = ({ item, index, renderImageLink }) => {
               </span>
             </div>
             <div className="mt-2 inline-flex items-center gap-2 text-xs font-semibold text-purple-700 bg-purple-50 px-2.5 py-1 rounded-md border border-purple-100">
-              {item.department} <span className="text-purple-300">•</span> Group {item.group}
+              {item.department} <span className="text-purple-300">•</span> Group{" "}
+              {item.group}
             </div>
           </div>
         </div>
@@ -692,7 +784,9 @@ const AttendanceCard = ({ item, index, renderImageLink }) => {
           <div className="space-y-2.5 text-sm">
             <div className="flex justify-between items-center">
               <span className="text-gray-500">End Location</span>
-              <span className="font-medium text-gray-800">{item.endLocation}</span>
+              <span className="font-medium text-gray-800">
+                {item.endLocation}
+              </span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-500">Odometer</span>
@@ -747,15 +841,36 @@ const AttendanceCard = ({ item, index, renderImageLink }) => {
             Attendance Images
           </h4>
           <div className="space-y-2 text-sm">
-            <div>{renderImageLink(item.attendance_images?.selfie_photo_in, "Selfie IN")}</div>
-            <div>{renderImageLink(item.attendance_images?.selfie_photo_out, "Selfie OUT")}</div>
             <div>
-              {renderImageLink(item.attendance_images?.speedometer_photo_in, "Speedometer IN")}
+              {renderImageLink(
+                item.attendance_images?.selfie_photo_in,
+                "Selfie IN",
+              )}
             </div>
             <div>
-              {renderImageLink(item.attendance_images?.speedometer_photo_out, "Speedometer OUT")}
+              {renderImageLink(
+                item.attendance_images?.selfie_photo_out,
+                "Selfie OUT",
+              )}
             </div>
-            <div>{renderImageLink(item.attendance_images?.signature_out, "Signature OUT")}</div>
+            <div>
+              {renderImageLink(
+                item.attendance_images?.speedometer_photo_in,
+                "Speedometer IN",
+              )}
+            </div>
+            <div>
+              {renderImageLink(
+                item.attendance_images?.speedometer_photo_out,
+                "Speedometer OUT",
+              )}
+            </div>
+            <div>
+              {renderImageLink(
+                item.attendance_images?.signature_out,
+                "Signature OUT",
+              )}
+            </div>
           </div>
         </div>
       </div>

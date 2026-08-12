@@ -45,26 +45,26 @@ const Dailyreports = () => {
   const dropDownRef = useRef(null);
 
   const [employeeSearch, setEmployeeSearch] = useState(() =>
-    readStored(STORAGE_KEYS.employeeSearch, "")
+    readStored(STORAGE_KEYS.employeeSearch, ""),
   );
   const [selectedEmployees, setSelectedEmployees] = useState(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.selectedEmployees);
     return saved ? JSON.parse(saved) : [];
   });
   const [reportType, setReportType] = useState(() =>
-    readStored(STORAGE_KEYS.reportType, "monthly")
+    readStored(STORAGE_KEYS.reportType, "monthly"),
   );
   const [customStartDate, setCustomStartDate] = useState(() =>
-    readStored(STORAGE_KEYS.customStartDate, "")
+    readStored(STORAGE_KEYS.customStartDate, ""),
   );
   const [customEndDate, setCustomEndDate] = useState(() =>
-    readStored(STORAGE_KEYS.customEndDate, "")
+    readStored(STORAGE_KEYS.customEndDate, ""),
   );
   const [selectedMonth, setSelectedMonth] = useState(() =>
-    Number(readStored(STORAGE_KEYS.selectedMonth, today.getMonth() + 1))
+    Number(readStored(STORAGE_KEYS.selectedMonth, today.getMonth() + 1)),
   );
   const [selectedYear, setSelectedYear] = useState(() =>
-    Number(readStored(STORAGE_KEYS.selectedYear, today.getFullYear()))
+    Number(readStored(STORAGE_KEYS.selectedYear, today.getFullYear())),
   );
 
   // ---- persist filters ----
@@ -75,7 +75,7 @@ const Dailyreports = () => {
   useEffect(() => {
     localStorage.setItem(
       STORAGE_KEYS.selectedEmployees,
-      JSON.stringify(selectedEmployees)
+      JSON.stringify(selectedEmployees),
     );
   }, [selectedEmployees]);
 
@@ -153,8 +153,8 @@ const Dailyreports = () => {
         null,
         setRawResponse,
         setData,
-        setSummary
-      )
+        setSummary,
+      ),
     ).finally(() => {
       if (isMounted) setIsLoading(false);
     });
@@ -180,20 +180,22 @@ const Dailyreports = () => {
     setSelectedEmployees((prev) =>
       prev.includes(employeeName)
         ? prev.filter((item) => item !== employeeName)
-        : [...prev, employeeName]
+        : [...prev, employeeName],
     );
     setCurrentPage(1);
   };
 
   const handleSelectAllEmployees = () => {
     setSelectedEmployees(
-      selectedEmployees.length === uniqueEmployees.length ? [] : uniqueEmployees
+      selectedEmployees.length === uniqueEmployees.length
+        ? []
+        : uniqueEmployees,
     );
     setCurrentPage(1);
   };
 
   const filteredEmployeeOptions = uniqueEmployees.filter((name) =>
-    name.toLowerCase().includes(employeeSearch.toLowerCase())
+    name.toLowerCase().includes(employeeSearch.toLowerCase()),
   );
 
   const filteredData = useMemo(() => {
@@ -206,12 +208,19 @@ const Dailyreports = () => {
   const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE) || 1;
   const currentData = filteredData.slice(
     (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
+    currentPage * ITEMS_PER_PAGE,
   );
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [reportType, selectedMonth, selectedYear, customStartDate, customEndDate, selectedEmployees]);
+  }, [
+    reportType,
+    selectedMonth,
+    selectedYear,
+    customStartDate,
+    customEndDate,
+    selectedEmployees,
+  ]);
 
   const handleResetFilters = () => {
     setEmployeeSearch("");
@@ -231,48 +240,75 @@ const Dailyreports = () => {
     if (!rawResponse?.data?.length) return;
 
     const headers = [
-      "Date", "Day", "Employee Name", "Designation", "Reporting To", "HQ",
-      "Status", "Present", "Scheduled Time", "Check In", "Check Out",
-      "Total Hours", "GPS KM", "Start Location", "End Location",
-      "Farmer Meeting", "Field Visit", "Visit Schedule", "Visit Complete",
-      "Morning Remark", "Evening Remark", "General Remark",
+      "Date",
+      "Day",
+      "Employee Name",
+      "Designation",
+      "Reporting To",
+      "HQ",
+      "Status",
+      "Present",
+      "Scheduled Time",
+      "Check In",
+      "Check Out",
+      "Total Hours",
+      "GPS KM",
+      "Start Location",
+      "End Location",
+      "Farmer Meeting",
+      "Field Visit",
+      "Visit Schedule",
+      "Visit Complete",
+      "Morning Remark",
+      "Evening Remark",
+      "General Remark",
     ];
 
     const rows = [];
 
     rawResponse.data.forEach((dayData) => {
-      dayData.employees.forEach((emp) => {
-        rows.push([
-          emp?.date || dayData?.date || "-",
-          emp?.day || dayData?.day || "-",
-          emp?.name || "-",
-          emp?.designation || "-",
-          emp?.reporting_to || "-",
-          emp?.hq || "-",
-          emp?.status || "-",
-          emp?.present ? "Yes" : "No",
-          emp?.time_tracking?.scheduled || "-",
-          emp?.time_tracking?.check_in || "-",
-          emp?.time_tracking?.check_out || "-",
-          emp?.time_tracking?.total_hours || "-",
-          emp?.travel_details?.gps_km || "-",
-          emp?.travel_details?.start_location || "-",
-          emp?.travel_details?.end_location || "-",
-          emp?.visit_details?.farmer_meeting ?? "-",
-          emp?.visit_details?.field_visit ?? "-",
-          emp?.visit_details?.visit_schedule ?? "-",
-          emp?.visit_details?.visit_complete ?? "-",
-          emp?.remarks?.morning || "-",
-          emp?.remarks?.evening || "-",
-          emp?.remarks?.general || "-",
-        ]);
-      });
+      dayData.employees
+        .filter(
+          (emp) =>
+            selectedEmployees.length === 0 ||
+            selectedEmployees.includes(emp.name),
+        )
+        .forEach((emp) => {
+          rows.push([
+            emp?.date || dayData?.date || "-",
+            emp?.day || dayData?.day || "-",
+            emp?.name || "-",
+            emp?.designation || "-",
+            emp?.reporting_to || "-",
+            emp?.hq || "-",
+            emp?.status || "-",
+            emp?.present ? "Yes" : "No",
+            emp?.time_tracking?.scheduled || "-",
+            emp?.time_tracking?.check_in || "-",
+            emp?.time_tracking?.check_out || "-",
+            emp?.time_tracking?.total_hours || "-",
+            emp?.travel_details?.gps_km || "-",
+            emp?.travel_details?.start_location || "-",
+            emp?.travel_details?.end_location || "-",
+            emp?.visit_details?.farmer_meeting ?? "-",
+            emp?.visit_details?.field_visit ?? "-",
+            emp?.visit_details?.visit_schedule ?? "-",
+            emp?.visit_details?.visit_complete ?? "-",
+            emp?.remarks?.morning || "-",
+            emp?.remarks?.evening || "-",
+            emp?.remarks?.general || "-",
+          ]);
+        });
     });
+
+    if (!rows.length) {
+      return alert("No matching records to export for the current filters!");
+    }
 
     const csvContent = [
       headers.join(","),
       ...rows.map((row) =>
-        row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")
+        row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","),
       ),
     ].join("\n");
 
@@ -285,7 +321,6 @@ const Dailyreports = () => {
     link.click();
     document.body.removeChild(link);
   };
-
   return (
     <div className="p-4 md:p-8 bg-gray-50 h-screen overflow-hidden flex flex-col font-sans">
       <style>{`
@@ -313,7 +348,9 @@ const Dailyreports = () => {
       {/* 1. TOP TITLE SECTION */}
       <div className="flex justify-between items-center mb-6 shrink-0 border-b border-gray-200 pb-4">
         <div>
-          <h2 className="text-3xl font-bold text-gray-800 tracking-tight">Reports Logs</h2>
+          <h2 className="text-3xl font-bold text-gray-800 tracking-tight">
+            Reports Logs
+          </h2>
           <p className="text-sm text-gray-500 font-medium">
             Track employee field activities, visits, and daily work logs
           </p>
@@ -323,8 +360,18 @@ const Dailyreports = () => {
           disabled={isLoading}
           className="bg-[#8b2cf5] text-white px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-[#7a26d9] active:scale-95 flex items-center gap-2 transition-all duration-150 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            strokeWidth="2.5"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+            />
           </svg>
           Export CSV
         </button>
@@ -359,8 +406,18 @@ const Dailyreports = () => {
             iconBg="bg-purple-50"
             iconColor="text-[#8b2cf5]"
             icon={
-              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              <svg
+                className="w-8 h-8"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                />
               </svg>
             }
           />
@@ -371,8 +428,18 @@ const Dailyreports = () => {
             iconBg="bg-green-50"
             iconColor="text-green-600"
             icon={
-              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <svg
+                className="w-8 h-8"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
               </svg>
             }
           />
@@ -383,8 +450,18 @@ const Dailyreports = () => {
             iconBg="bg-red-50"
             iconColor="text-red-500"
             icon={
-              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <svg
+                className="w-8 h-8"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
               </svg>
             }
           />
@@ -432,9 +509,18 @@ const Dailyreports = () => {
 
           <div className="flex items-center gap-1">
             {Array.from(
-              { length: Math.min(PAGE_WINDOW, totalPages - Math.floor((currentPage - 1) / PAGE_WINDOW) * PAGE_WINDOW) },
+              {
+                length: Math.min(
+                  PAGE_WINDOW,
+                  totalPages -
+                    Math.floor((currentPage - 1) / PAGE_WINDOW) * PAGE_WINDOW,
+                ),
+              },
               (_, i) => {
-                const page = Math.floor((currentPage - 1) / PAGE_WINDOW) * PAGE_WINDOW + i + 1;
+                const page =
+                  Math.floor((currentPage - 1) / PAGE_WINDOW) * PAGE_WINDOW +
+                  i +
+                  1;
                 return (
                   <button
                     key={page}
@@ -448,12 +534,14 @@ const Dailyreports = () => {
                     {page}
                   </button>
                 );
-              }
+              },
             )}
           </div>
 
           <button
-            onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+            onClick={() =>
+              setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+            }
             disabled={currentPage === totalPages}
             className="p-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center"
           >
@@ -482,7 +570,9 @@ const Dailyreports = () => {
 
 const StatCard = ({ label, value, isLoading, iconBg, iconColor, icon }) => (
   <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-5 transition-shadow hover:shadow-md">
-    <div className={`w-14 h-14 ${iconBg} rounded-2xl flex items-center justify-center ${iconColor}`}>
+    <div
+      className={`w-14 h-14 ${iconBg} rounded-2xl flex items-center justify-center ${iconColor}`}
+    >
       {icon}
     </div>
     <div>
@@ -516,7 +606,9 @@ const ReportCard = ({ item, index, renderImageLink }) => (
         <div>
           <h3 className="text-lg font-bold text-gray-900">{item.name}</h3>
           <div className="flex items-center gap-4 text-sm text-gray-500 mt-1">
-            <span className="flex items-center gap-1.5">{item.designation}</span>
+            <span className="flex items-center gap-1.5">
+              {item.designation}
+            </span>
             <span className="flex items-center gap-1.5">{item.location}</span>
           </div>
           <div className="flex gap-2 mt-2.5">
@@ -556,12 +648,15 @@ const ReportCard = ({ item, index, renderImageLink }) => (
         <div className="space-y-2.5 text-sm text-gray-800">
           <div className="flex justify-between">
             <span>Scheduled Time</span>
-            <span className="font-semibold">{item.time_tracking?.scheduled}</span>
+            <span className="font-semibold">
+              {item.time_tracking?.scheduled}
+            </span>
           </div>
           <div className="flex justify-between">
             <span>Visits</span>
             <span className="font-semibold">
-              {item.time_tracking?.visits_done} / {item.time_tracking?.visits_total}
+              {item.time_tracking?.visits_done} /{" "}
+              {item.time_tracking?.visits_total}
             </span>
           </div>
           <div className="flex justify-between pt-2 border-t border-gray-100">
@@ -584,12 +679,15 @@ const ReportCard = ({ item, index, renderImageLink }) => (
           </div>
           <div className="flex justify-between">
             <span>Odometer</span>
-            <span className="font-semibold">{item.travel_details.odometer}</span>
+            <span className="font-semibold">
+              {item.travel_details.odometer}
+            </span>
           </div>
           <div className="flex justify-between pt-2 border-t border-gray-100">
             <span>Distance</span>
             <span className="font-bold">
-              {item.travel_details.total_distance} {item.travel_details.gps_distance}
+              {item.travel_details.total_distance}{" "}
+              {item.travel_details.gps_distance}
             </span>
           </div>
         </div>
@@ -610,24 +708,49 @@ const ReportCard = ({ item, index, renderImageLink }) => (
           </div>
           <div className="flex justify-between pt-2 border-t border-gray-100">
             <span>General</span>
-            <span className="font-semibold truncate w-24">{item.remarks.general}</span>
+            <span className="font-semibold truncate w-24">
+              {item.remarks.general}
+            </span>
           </div>
         </div>
       </div>
     </div>
 
     <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm mt-4">
-      <h4 className="text-xs font-bold text-purple-600 uppercase mb-3">Attendance Images</h4>
+      <h4 className="text-xs font-bold text-purple-600 uppercase mb-3">
+        Attendance Images
+      </h4>
       <div className="space-y-2 text-sm">
-        <div>{renderImageLink(item.attendance_images?.selfie_photo_in, "Selfie IN")}</div>
-        <div>{renderImageLink(item.attendance_images?.selfie_photo_out, "Selfie OUT")}</div>
         <div>
-          {renderImageLink(item.attendance_images?.speedometer_photo_in, "Speedometer IN")}
+          {renderImageLink(
+            item.attendance_images?.selfie_photo_in,
+            "Selfie IN",
+          )}
         </div>
         <div>
-          {renderImageLink(item.attendance_images?.speedometer_photo_out, "Speedometer OUT")}
+          {renderImageLink(
+            item.attendance_images?.selfie_photo_out,
+            "Selfie OUT",
+          )}
         </div>
-        <div>{renderImageLink(item.attendance_images?.signature_out, "Signature OUT")}</div>
+        <div>
+          {renderImageLink(
+            item.attendance_images?.speedometer_photo_in,
+            "Speedometer IN",
+          )}
+        </div>
+        <div>
+          {renderImageLink(
+            item.attendance_images?.speedometer_photo_out,
+            "Speedometer OUT",
+          )}
+        </div>
+        <div>
+          {renderImageLink(
+            item.attendance_images?.signature_out,
+            "Signature OUT",
+          )}
+        </div>
       </div>
     </div>
   </div>

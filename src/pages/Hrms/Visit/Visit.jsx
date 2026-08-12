@@ -94,8 +94,8 @@ const Visit = () => {
         setVisitData,
         setSummary,
         setRawResponse,
-        () => {} // loading now handled locally below
-      )
+        () => {}, // loading now handled locally below
+      ),
     ).finally(() => {
       if (isMounted) setIsLoading(false);
     });
@@ -130,96 +130,137 @@ const Visit = () => {
   const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE) || 1;
   const currentData = filteredData.slice(
     (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
+    currentPage * ITEMS_PER_PAGE,
   );
 
   const uniqueEmployees = useMemo(
     () => [...new Set(visitData.map((item) => item.salesRep))],
-    [visitData]
+    [visitData],
   );
 
   const filteredEmployeeOptions = uniqueEmployees.filter((name) =>
-    name.toLowerCase().includes(employeeSearch.toLowerCase())
+    name.toLowerCase().includes(employeeSearch.toLowerCase()),
   );
 
   const handleEmployeeSelect = (employeeName) => {
     setSelectedEmployees((prev) =>
       prev.includes(employeeName)
         ? prev.filter((item) => item !== employeeName)
-        : [...prev, employeeName]
+        : [...prev, employeeName],
     );
     setCurrentPage(1);
   };
 
   const handleSelectAllEmployees = () => {
     setSelectedEmployees(
-      selectedEmployees.length === uniqueEmployees.length ? [] : uniqueEmployees
+      selectedEmployees.length === uniqueEmployees.length
+        ? []
+        : uniqueEmployees,
     );
     setCurrentPage(1);
   };
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [reportType, selectedMonth, selectedYear, customStartDate, customEndDate, selectedEmployees]);
+  }, [
+    reportType,
+    selectedMonth,
+    selectedYear,
+    customStartDate,
+    customEndDate,
+    selectedEmployees,
+  ]);
 
   // ✅ Export CSV Function
   const handleExport = () => {
     if (!rawResponse?.data?.length) return;
 
     const headers = [
-      "Date", "Day", "Visit Status", "User ID", "User Name", "User Email",
-      "Team", "Designation", "State", "Customer Name", "Customer Contact",
-      "Customer Address", "Customer Mobile", "Customer Email",
-      "Customer Designation", "Scheduled Time", "Actual Check In",
-      "Actual Check Out", "Duration", "Order", "Expense", "Remark",
-      "Follow Up Date", "Follow Up Time", "Checkin Address",
-      "Checkout Address", "Checkin Latitude", "Checkin Longitude",
-      "Client Type", "Signature",
+      "Date",
+      "Day",
+      "Visit Status",
+      "User ID",
+      "User Name",
+      "User Email",
+      "Team",
+      "Designation",
+      "State",
+      "Customer Name",
+      "Customer Contact",
+      "Customer Address",
+      "Customer Mobile",
+      "Customer Email",
+      "Customer Designation",
+      "Scheduled Time",
+      "Actual Check In",
+      "Actual Check Out",
+      "Duration",
+      "Order",
+      "Expense",
+      "Remark",
+      "Follow Up Date",
+      "Follow Up Time",
+      "Checkin Address",
+      "Checkout Address",
+      "Checkin Latitude",
+      "Checkin Longitude",
+      "Client Type",
+      "Signature",
     ];
 
     const rows = [];
 
     rawResponse.data.forEach((dayData) => {
-      dayData.visits.forEach((visit) => {
-        rows.push([
-          dayData?.date || "-",
-          dayData?.day || "-",
-          visit?.status || "-",
-          visit?.user_details?.id || "-",
-          visit?.user_details?.name || "-",
-          visit?.user_details?.email || "-",
-          visit?.user_details?.team || "-",
-          visit?.user_details?.designation || "-",
-          visit?.user_details?.state || "-",
-          visit?.customer_details?.customer || "-",
-          visit?.customer_details?.contact || "-",
-          visit?.customer_details?.address || "-",
-          visit?.customer_details?.mobile || "-",
-          visit?.customer_details?.email || "-",
-          visit?.customer_details?.designation || "-",
-          visit?.schedule_and_time?.scheduled || "-",
-          visit?.schedule_and_time?.actual || "-",
-          visit?.schedule_and_time?.actual_out || "-",
-          visit?.schedule_and_time?.duration || "-",
-          visit?.outcomes?.order || 0,
-          visit?.outcomes?.expense || 0,
-          visit?.outcomes?.remark || "-",
-          visit?.outcomes?.follow_up_date || "-",
-          visit?.outcomes?.follow_up_time || "-",
-          visit?.location?.checkin_address || "-",
-          visit?.location?.checkout_address || "-",
-          visit?.location?.checkin_lat || "-",
-          visit?.location?.checkin_lng || "-",
-          visit?.client_type || "-",
-          visit?.signature || "-",
-        ]);
-      });
+      dayData.visits
+        .filter(
+          (visit) =>
+            selectedEmployees.length === 0 ||
+            selectedEmployees.includes(visit?.user_details?.name),
+        )
+        .forEach((visit) => {
+          rows.push([
+            dayData?.date || "-",
+            dayData?.day || "-",
+            visit?.status || "-",
+            visit?.user_details?.id || "-",
+            visit?.user_details?.name || "-",
+            visit?.user_details?.email || "-",
+            visit?.user_details?.team || "-",
+            visit?.user_details?.designation || "-",
+            visit?.user_details?.state || "-",
+            visit?.customer_details?.customer || "-",
+            visit?.customer_details?.contact || "-",
+            visit?.customer_details?.address || "-",
+            visit?.customer_details?.mobile || "-",
+            visit?.customer_details?.email || "-",
+            visit?.customer_details?.designation || "-",
+            visit?.schedule_and_time?.scheduled || "-",
+            visit?.schedule_and_time?.actual || "-",
+            visit?.schedule_and_time?.actual_out || "-",
+            visit?.schedule_and_time?.duration || "-",
+            visit?.outcomes?.order || 0,
+            visit?.outcomes?.expense || 0,
+            visit?.outcomes?.remark || "-",
+            visit?.outcomes?.follow_up_date || "-",
+            visit?.outcomes?.follow_up_time || "-",
+            visit?.location?.checkin_address || "-",
+            visit?.location?.checkout_address || "-",
+            visit?.location?.checkin_lat || "-",
+            visit?.location?.checkin_lng || "-",
+            visit?.client_type || "-",
+            visit?.signature || "-",
+          ]);
+        });
     });
+
+    if (!rows.length) {
+      return alert("No matching records to export for the current filters!");
+    }
 
     const csvContent = [
       headers.join(","),
       ...rows.map((row) =>
-        row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")
+        row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","),
       ),
     ].join("\n");
 
@@ -260,7 +301,9 @@ const Visit = () => {
       {/* 1. TOP TITLE SECTION - FIXED */}
       <div className="flex justify-between items-center mb-6 shrink-0 border-b border-gray-200 pb-4">
         <div>
-          <h2 className="text-3xl font-bold text-gray-800 tracking-tight">Visit Logs</h2>
+          <h2 className="text-3xl font-bold text-gray-800 tracking-tight">
+            Visit Logs
+          </h2>
           <p className="text-sm text-gray-500 font-medium">
             Track sales rep visits, customer details, and outcomes
           </p>
@@ -270,8 +313,18 @@ const Visit = () => {
           disabled={isLoading}
           className="bg-[#8b2cf5] text-white px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-[#7a26d9] active:scale-95 flex items-center gap-2 transition-all duration-150 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            strokeWidth="2.5"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+            />
           </svg>
           Export CSV
         </button>
@@ -305,9 +358,24 @@ const Visit = () => {
             iconBg="bg-purple-50"
             iconColor="text-[#8b2cf5]"
             icon={
-              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              <svg
+                className="w-8 h-8"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                />
               </svg>
             }
           />
@@ -318,8 +386,18 @@ const Visit = () => {
             iconBg="bg-green-50"
             iconColor="text-green-600"
             icon={
-              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <svg
+                className="w-8 h-8"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
               </svg>
             }
           />
@@ -330,8 +408,18 @@ const Visit = () => {
             iconBg="bg-red-50"
             iconColor="text-red-500"
             icon={
-              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <svg
+                className="w-8 h-8"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
               </svg>
             }
           />
@@ -343,7 +431,9 @@ const Visit = () => {
             <LoadingState />
           ) : currentData.length === 0 ? (
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-10 text-center fade-in">
-              <p className="text-gray-500 font-medium">No employee records found</p>
+              <p className="text-gray-500 font-medium">
+                No employee records found
+              </p>
             </div>
           ) : (
             currentData.map((item, index) => (
@@ -371,9 +461,18 @@ const Visit = () => {
 
           <div className="flex items-center gap-1">
             {Array.from(
-              { length: Math.min(PAGE_WINDOW, totalPages - Math.floor((currentPage - 1) / PAGE_WINDOW) * PAGE_WINDOW) },
+              {
+                length: Math.min(
+                  PAGE_WINDOW,
+                  totalPages -
+                    Math.floor((currentPage - 1) / PAGE_WINDOW) * PAGE_WINDOW,
+                ),
+              },
               (_, i) => {
-                const page = Math.floor((currentPage - 1) / PAGE_WINDOW) * PAGE_WINDOW + i + 1;
+                const page =
+                  Math.floor((currentPage - 1) / PAGE_WINDOW) * PAGE_WINDOW +
+                  i +
+                  1;
                 return (
                   <button
                     key={page}
@@ -387,12 +486,14 @@ const Visit = () => {
                     {page}
                   </button>
                 );
-              }
+              },
             )}
           </div>
 
           <button
-            onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+            onClick={() =>
+              setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+            }
             disabled={currentPage === totalPages}
             className="p-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center"
           >
@@ -421,7 +522,9 @@ const Visit = () => {
 
 const StatCard = ({ label, value, isLoading, iconBg, iconColor, icon }) => (
   <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-5 transition-shadow hover:shadow-md">
-    <div className={`w-14 h-14 ${iconBg} rounded-2xl flex items-center justify-center ${iconColor}`}>
+    <div
+      className={`w-14 h-14 ${iconBg} rounded-2xl flex items-center justify-center ${iconColor}`}
+    >
       {icon}
     </div>
     <div>
@@ -455,7 +558,9 @@ const VisitCard = ({ item, index, renderImageLink }) => (
         <div>
           <h3 className="text-lg font-bold text-gray-900">{item.salesRep}</h3>
           <div className="flex items-center gap-4 text-sm text-gray-500 mt-1">
-            <span className="flex items-center gap-1.5">{item.salesRepEmail}</span>
+            <span className="flex items-center gap-1.5">
+              {item.salesRepEmail}
+            </span>
             <span className="flex items-center gap-1.5">{item.route}</span>
           </div>
           <div className="flex gap-2 mt-2.5">
@@ -543,7 +648,9 @@ const VisitCard = ({ item, index, renderImageLink }) => (
         </div>
 
         <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-          <h4 className="text-xs font-bold text-purple-600 uppercase mb-3">Images</h4>
+          <h4 className="text-xs font-bold text-purple-600 uppercase mb-3">
+            Images
+          </h4>
           <div className="space-y-2 text-sm">
             <div>{renderImageLink(item.signature, "Check OUT image")}</div>
           </div>
