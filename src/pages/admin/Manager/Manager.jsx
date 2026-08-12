@@ -189,7 +189,6 @@ const Manager = () => {
             onChange={handleStatusFilter}
             className="w-full md:w-40 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm bg-white cursor-pointer transition-all appearance-none"
           >
-            <option value="">All Statuses</option>
             <option value="Active">Active</option>
             <option value="Inactive">Inactive</option>
           </select>
