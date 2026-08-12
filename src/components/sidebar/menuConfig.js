@@ -29,11 +29,11 @@ export const menuConfig = {
       icon: FaUserTie,
       path: "/manager",
     },
-    {
-      name: "Add Client Type",
-      icon: PlusCircle,
-      path: "/add-client-type",
-    },
+    // {
+    //   name: "Add Client Type",
+    //   icon: PlusCircle,
+    //   path: "/add-client-type",
+    // },
     {
       name: "HRMS",
       icon: FaLayerGroup,

@@ -28,7 +28,7 @@ const VisitFilters = ({
       {/* Tabs */}
 
       <div className="flex flex-wrap gap-3 mb-6">
-        {["daily", "weekly", "monthly", "custom"].map((tab) => (
+        {["monthly", "custom"].map((tab) => (
           <button
             key={tab}
             onClick={() => {
