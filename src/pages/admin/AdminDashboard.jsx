@@ -1,51 +1,140 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   FaUsers,
   FaCheckCircle,
   FaClock,
   FaUserTimes,
   FaTimes,
+  FaMapMarkerAlt,
 } from "react-icons/fa";
+
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  Popup,
+  Polyline,
+  useMap,
+} from "react-leaflet";
+
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 
 import {
   getAdminAttendanceReport,
   getUserTrackingById,
 } from "../../API/dashboardApis";
+
 import { getUserById } from "../../API/adminAuth";
+
+const markerIcon = L.icon({
+  iconUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
+  iconRetinaUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
+  shadowUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41],
+});
+
+const latestMarkerIcon = L.divIcon({
+  className: "",
+  html: `
+    <div style="
+      width: 34px;
+      height: 34px;
+      background: #ef4444;
+      border: 3px solid white;
+      border-radius: 50%;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    ">
+      <div style="
+        width: 10px;
+        height: 10px;
+        background: white;
+        border-radius: 50%;
+      "></div>
+    </div>
+  `,
+  iconSize: [34, 34],
+  iconAnchor: [17, 17],
+  popupAnchor: [0, -17],
+});
+
+function MapUpdater({ tracking }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!tracking) return;
+
+    const lat = Number(tracking.latitude);
+    const lng = Number(tracking.longitude);
+
+    if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
+      map.setView([lat, lng], 16);
+    }
+  }, [tracking, map]);
+
+  return null;
+}
 
 export default function Dashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Selected user
   const [id, setId] = useState(null);
   const [user, setUser] = useState(null);
 
-  // Modal states
   const [showModal, setShowModal] = useState(false);
   const [userLoading, setUserLoading] = useState(false);
+
   const [userTracking, setUserTracking] = useState(null);
   const [trackingLoading, setTrackingLoading] = useState(false);
 
- const fetchUserTracking = async (userId) => {
-  try {
-    setTrackingLoading(true);
+  const [selectedTracking, setSelectedTracking] = useState(null);
 
-    const response = await getUserTrackingById(userId);
+  const fetchUserTracking = async (userId) => {
+    try {
+      setTrackingLoading(true);
 
+      const response = await getUserTrackingById(userId);
+      const trackingResponse = response?.data ?? response;
 
-    const trackingResponse = response?.data ?? response;
+      setUserTracking(trackingResponse);
 
-    setUserTracking(trackingResponse);
-  } catch (error) {
-    console.error("Get User Tracking Error:", error);
-    setUserTracking(null);
-  } finally {
-    setTrackingLoading(false);
-  }
-};
+      const trackingData = trackingResponse?.data || [];
 
-  // Fetch single user
+      if (trackingData.length > 0) {
+        const sorted = [...trackingData].sort((a, b) => {
+          const dateA = new Date(
+            `${a.tracking_date}T${a.tracking_time}`,
+          ).getTime();
+
+          const dateB = new Date(
+            `${b.tracking_date}T${b.tracking_time}`,
+          ).getTime();
+
+          return dateA - dateB;
+        });
+
+        setSelectedTracking(sorted[sorted.length - 1]);
+      } else {
+        setSelectedTracking(null);
+      }
+    } catch (error) {
+      console.error("Tracking error:", error);
+      setSelectedTracking(null);
+    } finally {
+      setTrackingLoading(false);
+    }
+  };
+
   const fetchUserById = async (userId) => {
     try {
       setUserLoading(true);
@@ -53,6 +142,7 @@ export default function Dashboard() {
       const response = await getUserById(userId);
 
       console.log("Single User Response:", response);
+
       const userData = response?.data?.data ?? response?.data ?? response;
 
       setUser(userData);
@@ -64,22 +154,20 @@ export default function Dashboard() {
     }
   };
 
-  // User click
   const handleUserClick = (userId) => {
     setId(userId);
+
     fetchUserById(userId);
     fetchUserTracking(userId);
   };
 
-  // Close modal
- const closeModal = () => {
-  setShowModal(false);
-  setUser(null);
-  setUserTracking(null);
-  setId(null);
-};
+  const closeModal = () => {
+    setShowModal(false);
+    setUser(null);
+    setUserTracking(null);
+    setId(null);
+  };
 
-  // Attendance API
   useEffect(() => {
     const fetchAttendance = async () => {
       try {
@@ -125,10 +213,50 @@ export default function Dashboard() {
     },
   ];
 
+  const trackingData = useMemo(() => {
+    if (!userTracking?.data) {
+      return [];
+    }
+
+    return userTracking.data
+      .map((item) => ({
+        ...item,
+        latitude: Number(item.latitude),
+        longitude: Number(item.longitude),
+      }))
+      .filter(
+        (item) => !Number.isNaN(item.latitude) && !Number.isNaN(item.longitude),
+      );
+  }, [userTracking]);
+
+  const mapCenter =
+    trackingData.length > 0
+      ? [trackingData[0].latitude, trackingData[0].longitude]
+      : [16.2748933, 80.41547];
+
+  const route = trackingData
+    .slice()
+    .reverse()
+    .map((item) => [item.latitude, item.longitude]);
+
+  const sortedTrackingData = useMemo(() => {
+    return [...trackingData].sort((a, b) => {
+      const dateA = new Date(`${a.tracking_date}T${a.tracking_time}`).getTime();
+
+      const dateB = new Date(`${b.tracking_date}T${b.tracking_time}`).getTime();
+
+      return dateA - dateB;
+    });
+  }, [trackingData]);
+
+  const latestLocation =
+    sortedTrackingData.length > 0
+      ? sortedTrackingData[sortedTrackingData.length - 1]
+      : null;
+
   return (
     <>
       <div className="space-y-6">
-        {/* Page Title */}
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
 
@@ -137,7 +265,6 @@ export default function Dashboard() {
           </p>
         </div>
 
-        {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {stats.map((item, index) => {
             const Icon = item.icon;
@@ -163,9 +290,7 @@ export default function Dashboard() {
           })}
         </div>
 
-        {/* Users Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Present Users */}
           <div className="bg-white rounded-xl shadow-sm p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-gray-800">
@@ -216,14 +341,12 @@ export default function Dashboard() {
             </ul>
           </div>
 
-          {/* Late + Absent Users */}
           <div className="bg-white rounded-xl shadow-sm p-6">
             <h2 className="text-lg font-semibold text-gray-800 mb-4">
               Late / Absent Users
             </h2>
 
             <ul className="space-y-3 max-h-[420px] overflow-y-auto pr-2">
-              {/* Late Users */}
               {data?.late_users?.map((user) => (
                 <li
                   key={`late-${user.id}`}
@@ -256,7 +379,6 @@ export default function Dashboard() {
                 </li>
               ))}
 
-              {/* Absent Users */}
               {data?.absent_users?.map((user) => (
                 <li
                   key={`absent-${user.id}`}
@@ -295,17 +417,15 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ================= USER DETAILS MODAL ================= */}
       {showModal && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
           onClick={closeModal}
         >
           <div
-            className="bg-white w-full max-w-lg rounded-2xl shadow-xl max-h-[90vh] overflow-y-auto"
+            className="bg-white w-full max-w-5xl rounded-2xl shadow-xl max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Modal Header */}
             <div className="flex items-center justify-between p-5 border-b">
               <div>
                 <h2 className="text-xl font-semibold text-gray-800">
@@ -325,15 +445,13 @@ export default function Dashboard() {
               </button>
             </div>
 
-            {/* Modal Body */}
             <div className="p-6">
               {userLoading ? (
                 <div className="flex justify-center py-10">
                   <div className="h-8 w-8 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin" />
                 </div>
               ) : user ? (
-                <div className="space-y-5">
-                  {/* Profile */}
+                <div className="space-y-6">
                   <div className="flex items-center gap-4">
                     <div className="h-16 w-16 rounded-full bg-purple-100 flex items-center justify-center">
                       <span className="text-2xl font-bold text-purple-600">
@@ -352,100 +470,15 @@ export default function Dashboard() {
                     </div>
                   </div>
 
-                  {/* Details */}
-                  {/* <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      <p className="text-xs text-gray-400">
-                        Mobile Number
-                      </p>
-                      <p className="text-sm font-medium text-gray-800 mt-1">
-                        {user.mobile_number || "N/A"}
-                      </p>
-                    </div>
-
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      <p className="text-xs text-gray-400">
-                        Role
-                      </p>
-                      <p className="text-sm font-medium text-gray-800 mt-1">
-                        {user.role || "N/A"}
-                      </p>
-                    </div>
-
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      <p className="text-xs text-gray-400">
-                        Designation
-                      </p>
-                      <p className="text-sm font-medium text-gray-800 mt-1">
-                        {user.designation || "N/A"}
-                      </p>
-                    </div>
-
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      <p className="text-xs text-gray-400">
-                        Team
-                      </p>
-                      <p className="text-sm font-medium text-gray-800 mt-1">
-                        {user.team || "N/A"}
-                      </p>
-                    </div>
-
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      <p className="text-xs text-gray-400">
-                        HQ
-                      </p>
-                      <p className="text-sm font-medium text-gray-800 mt-1">
-                        {user.hq || "N/A"}
-                      </p>
-                    </div>
-
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      <p className="text-xs text-gray-400">
-                        State
-                      </p>
-                      <p className="text-sm font-medium text-gray-800 mt-1">
-                        {user.state || "N/A"}
-                      </p>
-                    </div>
-
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      <p className="text-xs text-gray-400">
-                        Date of Joining
-                      </p>
-                      <p className="text-sm font-medium text-gray-800 mt-1">
-                        {user.date_of_joining || "N/A"}
-                      </p>
-                    </div>
-
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      <p className="text-xs text-gray-400">
-                        Status
-                      </p>
-                      <p
-                        className={`text-sm font-medium mt-1 ${
-                          user.is_active
-                            ? "text-green-600"
-                            : "text-red-600"
-                        }`}
-                      >
-                        {user.is_active ? "Active" : "Inactive"}
-                      </p>
-                    </div>
-
-                  </div> */}
-
-                  {/* ================= TRACKING ================= */}
-                  {/* ================= TRACKING ================= */}
                   <div className="border-t pt-5">
                     <div className="flex items-center justify-between mb-4">
                       <div>
-                        <h3 className="text-sm font-semibold text-gray-700">
+                        <h3 className="text-lg font-semibold text-gray-800">
                           Location Tracking
                         </h3>
 
                         <p className="text-xs text-gray-400 mt-1">
-                          User's recorded location history
+                          Complete user location history
                         </p>
                       </div>
 
@@ -456,7 +489,6 @@ export default function Dashboard() {
                       )}
                     </div>
 
-                    {/* Tracking Loading */}
                     {trackingLoading ? (
                       <div className="flex flex-col items-center justify-center py-10">
                         <div className="h-8 w-8 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin" />
@@ -465,127 +497,167 @@ export default function Dashboard() {
                           Loading tracking data...
                         </p>
                       </div>
-                    ) : userTracking?.data?.length > 0 ? (
+                    ) : trackingData.length > 0 ? (
                       <>
-                        {/* Latest Location */}
-                        <div className="bg-purple-50 border border-purple-100 rounded-xl p-4 mb-4">
-                          <div className="flex items-center justify-between mb-2">
-                            <h4 className="text-sm font-semibold text-purple-700">
-                              Latest Location
-                            </h4>
+                        {latestLocation && (
+                          <div className="bg-purple-50 border border-purple-100 rounded-xl p-4 mb-4">
+                            <div className="flex items-center gap-2 mb-2">
+                              <FaMapMarkerAlt className="text-red-500" />
 
-                            <span className="text-xs bg-white text-purple-600 px-2 py-1 rounded-full">
-                              Latest
-                            </span>
-                          </div>
+                              <h4 className="text-sm font-semibold text-purple-700">
+                                Latest Location
+                              </h4>
+                            </div>
 
-                          {(() => {
-                            const latestLocation = [...userTracking.data].sort(
-                              (a, b) => {
-                                const dateA = new Date(
-                                  `${a.tracking_date} ${a.tracking_time}`,
-                                );
+                            <p className="text-sm font-medium text-gray-800">
+                              {latestLocation.address || "Location unavailable"}
+                            </p>
 
-                                const dateB = new Date(
-                                  `${b.tracking_date} ${b.tracking_time}`,
-                                );
-
-                                return dateB - dateA;
-                              },
-                            )[0];
-
-                            return (
-                              <>
-                                <p className="text-sm font-medium text-gray-800">
-                                  {latestLocation?.address ||
-                                    "Location unavailable"}
+                            <div className="flex flex-wrap gap-3 mt-3">
+                              <div className="bg-white rounded-lg px-3 py-2">
+                                <p className="text-[10px] text-gray-400">
+                                  Date
                                 </p>
 
-                                <div className="flex flex-wrap gap-3 mt-3">
-                                  <div className="bg-white rounded-lg px-3 py-2">
-                                    <p className="text-[10px] text-gray-400 uppercase">
-                                      Date
-                                    </p>
+                                <p className="text-xs font-medium text-gray-700">
+                                  {latestLocation.tracking_date}
+                                </p>
+                              </div>
 
-                                    <p className="text-xs font-medium text-gray-700">
-                                      {latestLocation?.tracking_date || "N/A"}
-                                    </p>
-                                  </div>
+                              <div className="bg-white rounded-lg px-3 py-2">
+                                <p className="text-[10px] text-gray-400">
+                                  Time
+                                </p>
 
-                                  <div className="bg-white rounded-lg px-3 py-2">
-                                    <p className="text-[10px] text-gray-400 uppercase">
-                                      Time
-                                    </p>
+                                <p className="text-xs font-medium text-gray-700">
+                                  {latestLocation.tracking_time}
+                                </p>
+                              </div>
 
-                                    <p className="text-xs font-medium text-gray-700">
-                                      {latestLocation?.tracking_time || "N/A"}
-                                    </p>
-                                  </div>
+                              <div className="bg-white rounded-lg px-3 py-2">
+                                <p className="text-[10px] text-gray-400">
+                                  Latitude
+                                </p>
 
-                                  <div className="bg-white rounded-lg px-3 py-2">
-                                    <p className="text-[10px] text-gray-400 uppercase">
-                                      Coordinates
-                                    </p>
+                                <p className="text-xs font-medium text-gray-700">
+                                  {latestLocation.latitude}
+                                </p>
+                              </div>
 
-                                    <p className="text-xs font-medium text-gray-700">
-                                      {latestLocation?.latitude},{" "}
-                                      {latestLocation?.longitude}
-                                    </p>
-                                  </div>
-                                </div>
-                              </>
-                            );
-                          })()}
-                        </div>
+                              <div className="bg-white rounded-lg px-3 py-2">
+                                <p className="text-[10px] text-gray-400">
+                                  Longitude
+                                </p>
 
-                        {/* Tracking History */}
-                        <div>
-                          <div className="flex items-center justify-between mb-2">
-                            <h4 className="text-sm font-semibold text-gray-700">
-                              Tracking History
-                            </h4>
-
-                            <span className="text-xs text-gray-400">
-                              {userTracking.data.length} records
-                            </span>
+                                <p className="text-xs font-medium text-gray-700">
+                                  {latestLocation.longitude}
+                                </p>
+                              </div>
+                            </div>
                           </div>
+                        )}
 
-                          <div className="max-h-[300px] overflow-y-auto pr-2 space-y-2">
-                            {userTracking.data.map((tracking, index) => (
+                        <div className="w-full h-[500px] rounded-xl overflow-hidden">
+                          {selectedTracking ? (
+                            <MapContainer
+                              center={[
+                                Number(selectedTracking.latitude),
+                                Number(selectedTracking.longitude),
+                              ]}
+                              zoom={16}
+                              scrollWheelZoom={true}
+                              className="w-full h-full"
+                            >
+                              <MapUpdater tracking={selectedTracking} />
+
+                              <TileLayer
+                                attribution="&copy; OpenStreetMap contributors"
+                                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                              />
+
+                              <Marker
+                                position={[
+                                  Number(selectedTracking.latitude),
+                                  Number(selectedTracking.longitude),
+                                ]}
+                                icon={latestMarkerIcon}
+                              >
+                                <Popup>
+                                  <div className="min-w-[220px]">
+                                    <h3 className="font-semibold text-lg mb-2">
+                                      Selected Location
+                                    </h3>
+
+                                    <p>
+                                      <strong>Date:</strong>{" "}
+                                      {selectedTracking.tracking_date}
+                                    </p>
+
+                                    <p>
+                                      <strong>Time:</strong>{" "}
+                                      {selectedTracking.tracking_time}
+                                    </p>
+
+                                    <p>
+                                      <strong>Address:</strong>{" "}
+                                      {selectedTracking.address || "N/A"}
+                                    </p>
+
+                                    <p>
+                                      <strong>Latitude:</strong>{" "}
+                                      {selectedTracking.latitude}
+                                    </p>
+
+                                    <p>
+                                      <strong>Longitude:</strong>{" "}
+                                      {selectedTracking.longitude}
+                                    </p>
+                                  </div>
+                                </Popup>
+                              </Marker>
+                            </MapContainer>
+                          ) : (
+                            <div className="h-full flex items-center justify-center bg-gray-100">
+                              <p className="text-gray-500">
+                                No tracking location available
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                        <div className="mt-4">
+                          <h4 className="text-sm font-semibold text-gray-700 mb-3">
+                            Tracking History
+                          </h4>
+
+                          <div className="max-h-[300px] overflow-y-auto space-y-2">
+                            {sortedTrackingData.map((tracking, index) => (
                               <div
                                 key={tracking.id || index}
-                                className="relative flex gap-3 bg-gray-50 hover:bg-gray-100 rounded-lg p-3 transition"
+                                onClick={() => setSelectedTracking(tracking)}
+                                className={`rounded-lg p-3 cursor-pointer transition border ${
+                                  selectedTracking?.id === tracking.id
+                                    ? "bg-purple-50 border-purple-400"
+                                    : "bg-gray-50 border-transparent hover:bg-gray-100"
+                                }`}
                               >
-                                <div className="flex flex-col items-center">
-                                  <div className="h-8 w-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center text-xs font-semibold">
-                                    {index + 1}
-                                  </div>
-
-                                  {index !== userTracking.data.length - 1 && (
-                                    <div className="w-px h-full bg-gray-200 mt-1" />
-                                  )}
-                                </div>
-
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center justify-between gap-2">
-                                    <p className="text-xs font-semibold text-gray-700">
-                                      {tracking.tracking_time ||
-                                        "Time unavailable"}
-                                    </p>
-
-                                    <span className="text-[10px] text-gray-400">
-                                      {tracking.tracking_date || "N/A"}
-                                    </span>
-                                  </div>
-
-                                  <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                                    {tracking.address || "Address unavailable"}
+                                <div className="flex items-center justify-between">
+                                  <p className="text-xs font-semibold text-gray-700">
+                                    Point #{index + 1}
                                   </p>
 
-                                  <p className="text-[10px] text-gray-400 mt-2">
-                                    {tracking.latitude}, {tracking.longitude}
+                                  <p className="text-xs text-gray-400">
+                                    {tracking.tracking_date}{" "}
+                                    {tracking.tracking_time}
                                   </p>
                                 </div>
+
+                                <p className="text-xs text-gray-500 mt-1">
+                                  {tracking.address || "Address unavailable"}
+                                </p>
+
+                                <p className="text-[10px] text-gray-400 mt-1">
+                                  {tracking.latitude}, {tracking.longitude}
+                                </p>
                               </div>
                             ))}
                           </div>
@@ -600,7 +672,6 @@ export default function Dashboard() {
                     )}
                   </div>
 
-                  {/* Attendance */}
                   <div className="border-t pt-4">
                     <h3 className="text-sm font-semibold text-gray-700 mb-3">
                       Today's Attendance

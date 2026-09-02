@@ -7,3 +7,9 @@ export const getAdminAttendanceReport = () => {
 export const getUserTrackingById = (id) => {
     return api.get(`/tracking/${id}`);
 }
+
+
+
+export const getUsersByManagerId = (managerId)=>{
+    return api.get(`/admin/manager-users/${managerId}`);
+}
