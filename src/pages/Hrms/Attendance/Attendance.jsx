@@ -286,168 +286,179 @@ const Attendance = () => {
   };
 
   // ---- CSV export ----
-  const handleExport = () => {
-    const exportData = rawResponse?.data
-      ? rawResponse.data
-      : rawResponse?.employees
-        ? [
-            {
-              date: rawResponse.date,
-              day: rawResponse.day,
-              summary: rawResponse.summary,
-              employees: rawResponse.employees,
-            },
-          ]
-        : [];
+ const handleExport = () => {
+  const exportData = rawResponse?.data
+    ? rawResponse.data
+    : rawResponse?.employees
+      ? [
+          {
+            date: rawResponse.date,
+            day: rawResponse.day,
+            summary: rawResponse.summary,
+            employees: rawResponse.employees,
+          },
+        ]
+      : [];
 
-    if (!exportData.length) {
-      return alert("No data to export!");
+  if (!exportData.length) {
+    return alert("No data to export!");
+  }
+
+  const headers = [
+    "Date",
+    "Day",
+    "Name",
+    "Mobile Number",
+    "Designation",
+    "Reporting To",
+    "HQ",
+    "Status",
+    "Scheduled Timing",
+    "Check In",
+    "Check Out",
+    "Total Hours",
+    "Start Location",
+    "End Location",
+    "GPS KM",
+    "Morning Remark",
+    "Evening Remark",
+    "Selfie IN",
+    "Selfie OUT",
+    "Speedometer IN",
+    "Speedometer OUT",
+  ];
+
+  const escapeCSV = (value) => {
+    if (value === null || value === undefined) {
+      return "";
     }
 
-    const headers = [
-      "Date",
-      "Day",
-      "Name",
-      "Email",
-      "Designation",
-      "Reporting To",
-      "HQ",
-      "Status",
-      "Present",
-      "Scheduled Timing",
-      "Check In",
-      "Check Out",
-      "Total Hours",
-      "Start Location",
-      "End Location",
-      "GPS KM",
-      "Farmer Meeting",
-      "Field Visit",
-      "Visit Schedule",
-      "Visit Complete",
-      "Morning Remark",
-      "Evening Remark",
-      "General Remark",
-      "Selfie IN",
-      "Selfie OUT",
-      "Speedometer IN",
-      "Speedometer OUT",
-      "Signature IN",
-      "Signature OUT",
-    ].join(",");
-
-    const toRow = (vals) =>
-      vals.map((val) => `"${String(val ?? "").replace(/"/g, '""')}"`).join(",");
-
-    const rows = [];
-
-    exportData.forEach((dayData) => {
-      if (!dayData.employees || dayData.employees.length === 0) {
-        rows.push(
-          toRow([
-            dayData.date,
-            dayData.day,
-            "",
-            "NO EMPLOYEE RECORD",
-            "",
-            "",
-            "",
-            "",
-            "Absent",
-            "No",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-          ]),
-        );
-        return;
-      }
-
-      dayData.employees
-        .filter((emp) => {
-          const matchesEmployee =
-            selectedEmployees.length === 0 ||
-            selectedEmployees.includes(emp.name);
-
-          const empShift = emp.time_tracking?.scheduled || "";
-          const matchesShift = shiftFilter === "" || empShift === shiftFilter;
-
-          return matchesEmployee && matchesShift;
-        })
-        .forEach((emp) => {
-          const images = emp.attendance_images || {};
-          const remarks = emp.remarks || {};
-          const tracking = emp.time_tracking || {};
-          const travel = emp.travel_details || {};
-          const visits = emp.visit_details || {};
-
-          rows.push(
-            toRow([
-              emp.date || dayData.date || "",
-              emp.day || dayData.day || "",
-              emp.name || "",
-              emp.email || "",
-              emp.designation || "",
-              emp.reporting_to || "",
-              emp.hq || "",
-              emp.status || "",
-              emp.present ? "Yes" : "No",
-              tracking.scheduled || "",
-              tracking.check_in || "",
-              tracking.check_out || "",
-              tracking.total_hours || "",
-              travel.start_location || "",
-              travel.end_location || "",
-              travel.gps_km || "",
-              visits.farmer_meeting || 0,
-              visits.field_visit || 0,
-              visits.visit_schedule || 0,
-              visits.visit_complete || 0,
-              remarks.morning || "",
-              remarks.evening || "",
-              remarks.general || "",
-              images.selfie_photo_in || "",
-              images.selfie_photo_out || "",
-              images.speedometer_photo_in || "",
-              images.speedometer_photo_out || "",
-              images.signature_in || "",
-              images.signature_out || "",
-            ]),
-          );
-        });
-    });
-
-    if (!rows.length) {
-      return alert("No matching records to export for the current filters!");
-    }
-
-    const csvContent = [headers, ...rows].join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `attendance_report_${Date.now()}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
+    return `"${String(value).replace(/"/g, '""')}"`;
   };
+
+  const rows = [];
+
+  exportData.forEach((dayData) => {
+    if (
+      !dayData.employees ||
+      dayData.employees.length === 0
+    ) {
+      rows.push(
+        [
+          dayData.date || "",
+          dayData.day || "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "Absent",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+        ]
+          .map(escapeCSV)
+          .join(","),
+      );
+
+      return;
+    }
+
+    dayData.employees
+      .filter((emp) => {
+        const matchesEmployee =
+          selectedEmployees.length === 0 ||
+          selectedEmployees.includes(emp.name);
+
+        const empShift =
+          emp.time_tracking?.scheduled || "";
+
+        const matchesShift =
+          shiftFilter === "" ||
+          empShift === shiftFilter;
+
+        return matchesEmployee && matchesShift;
+      })
+      .forEach((emp) => {
+        const images = emp.attendance_images || {};
+        const remarks = emp.remarks || {};
+        const tracking = emp.time_tracking || {};
+        const travel = emp.travel_details || {};
+
+        const status =
+          emp.status ||
+          (emp.present ? "Present" : "Absent");
+
+        rows.push(
+          [
+            emp.date || dayData.date || "",
+            emp.day || dayData.day || "",
+            emp.name || "",
+            emp.mobile || "",
+            emp.designation || "",
+            emp.reporting_to || "",
+            emp.hq || "",
+            status,
+            tracking.scheduled || "",
+            tracking.check_in || "",
+            tracking.check_out || "",
+            tracking.total_hours || "",
+            travel.start_location || "",
+            travel.end_location || "",
+            travel.gps_km || "",
+            remarks.morning || "",
+            remarks.evening || "",
+            images.selfie_photo_in || "",
+            images.selfie_photo_out || "",
+            images.speedometer_photo_in || "",
+            images.speedometer_photo_out || "",
+          ]
+            .map(escapeCSV)
+            .join(","),
+        );
+      });
+  });
+
+  if (!rows.length) {
+    return alert(
+      "No matching records to export for the current filters!",
+    );
+  }
+
+  const csvContent = [
+    headers.map(escapeCSV).join(","),
+    ...rows,
+  ].join("\n");
+
+  const blob = new Blob(
+    ["\uFEFF" + csvContent],
+    {
+      type: "text/csv;charset=utf-8;",
+    },
+  );
+
+  const url = window.URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `attendance_report_${Date.now()}.csv`;
+
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+
+  window.URL.revokeObjectURL(url);
+};
 
   return (
     <div className="bg-gray-50 h-screen flex flex-col font-sans">

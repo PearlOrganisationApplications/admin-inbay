@@ -179,9 +179,9 @@ const Visit = () => {
       "Date",
       "Day",
       "Visit Status",
-      "User ID",
       "User Name",
       "User Email",
+      "Mobile Number",
       "Team",
       "Designation",
       "State",
@@ -189,8 +189,6 @@ const Visit = () => {
       "Customer Contact",
       "Customer Address",
       "Customer Mobile",
-      "Customer Email",
-      "Customer Designation",
       "Scheduled Time",
       "Actual Check In",
       "Actual Check Out",
@@ -200,53 +198,66 @@ const Visit = () => {
       "Remark",
       "Follow Up Date",
       "Follow Up Time",
+      "GPS CustomerLocation",
+      "Customer Address (Location)",
       "Checkin Address",
       "Checkout Address",
       "Checkin Latitude",
       "Checkin Longitude",
       "Client Type",
-      "Signature",
+      "Client Visit Photo",
     ];
+
+    const escapeCSV = (value) =>
+      `"${String(value ?? "-").replace(/"/g, '""')}"`;
 
     const rows = [];
 
     rawResponse.data.forEach((dayData) => {
-      dayData.visits
-        .filter(
+      dayData?.visits
+        ?.filter(
           (visit) =>
             selectedEmployees.length === 0 ||
             selectedEmployees.includes(visit?.user_details?.name),
         )
         .forEach((visit) => {
+          const user = visit?.user_details || {};
+          const customer = visit?.customer_details || {};
+          const schedule = visit?.schedule_and_time || {};
+          const outcomes = visit?.outcomes || {};
+          const location = visit?.location || {};
+
           rows.push([
             dayData?.date || "-",
             dayData?.day || "-",
             visit?.status || "-",
-            visit?.user_details?.id || "-",
-            visit?.user_details?.name || "-",
-            visit?.user_details?.email || "-",
-            visit?.user_details?.team || "-",
-            visit?.user_details?.designation || "-",
-            visit?.user_details?.state || "-",
-            visit?.customer_details?.customer || "-",
-            visit?.customer_details?.contact || "-",
-            visit?.customer_details?.address || "-",
-            visit?.customer_details?.mobile || "-",
-            visit?.customer_details?.email || "-",
-            visit?.customer_details?.designation || "-",
-            visit?.schedule_and_time?.scheduled || "-",
-            visit?.schedule_and_time?.actual || "-",
-            visit?.schedule_and_time?.actual_out || "-",
-            visit?.schedule_and_time?.duration || "-",
-            visit?.outcomes?.order || 0,
-            visit?.outcomes?.expense || 0,
-            visit?.outcomes?.remark || "-",
-            visit?.outcomes?.follow_up_date || "-",
-            visit?.outcomes?.follow_up_time || "-",
-            visit?.location?.checkin_address || "-",
-            visit?.location?.checkout_address || "-",
-            visit?.location?.checkin_lat || "-",
-            visit?.location?.checkin_lng || "-",
+            user?.name || "-",
+            user?.email || "-",
+            user?.mobile || user?.phone || "-",
+            user?.team || "-",
+            user?.designation || "-",
+            user?.state || "-",
+            customer?.customer || "-",
+            customer?.contact || "-",
+            customer?.address || "-",
+            customer?.mobile || "-",
+            schedule?.scheduled || "-",
+            schedule?.actual || "-",
+            schedule?.actual_out || "-",
+            schedule?.duration || "-",
+            outcomes?.order || 0,
+            outcomes?.expense || 0,
+            outcomes?.remark || "-",
+            outcomes?.follow_up_date || "-",
+            outcomes?.follow_up_time || "-",
+            location?.customer_location ||
+              location?.gps_customer_location ||
+              "-",
+            location?.address || location?.customer_address || "-",
+            location?.checkin_address || "-",
+            location?.checkout_address || "-",
+            location?.checkin_lat || "-",
+            location?.checkin_lng || "-",
             visit?.client_type || "-",
             visit?.signature || "-",
           ]);
@@ -254,24 +265,30 @@ const Visit = () => {
     });
 
     if (!rows.length) {
-      return alert("No matching records to export for the current filters!");
+      alert("No matching records to export for the current filters!");
+      return;
     }
 
     const csvContent = [
-      headers.join(","),
-      ...rows.map((row) =>
-        row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","),
-      ),
+      headers.map(escapeCSV).join(","),
+      ...rows.map((row) => row.map(escapeCSV).join(",")),
     ].join("\n");
 
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const blob = new Blob(["\uFEFF" + csvContent], {
+      type: "text/csv;charset=utf-8;",
+    });
+
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
+
     link.href = url;
     link.setAttribute("download", "visit-report.csv");
+
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+
+    URL.revokeObjectURL(url);
   };
 
   return (
