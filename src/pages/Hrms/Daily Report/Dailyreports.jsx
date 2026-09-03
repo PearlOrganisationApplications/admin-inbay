@@ -286,7 +286,7 @@ const Dailyreports = () => {
           emp?.date || dayData?.date || "-",
           emp?.day || dayData?.day || "-",
           emp?.name || "-",
-          emp?.mobile || "-",
+          emp?.mobile_number || "-",
           emp?.designation || "-",
           emp?.reporting_to || "-",
           emp?.hq || "-",

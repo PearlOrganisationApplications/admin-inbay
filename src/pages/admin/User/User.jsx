@@ -36,7 +36,8 @@ const User = () => {
     password: "",
     per_km_rate: "",
     hq: "",
-    designation:""
+    designation:"",
+    mobile_number:"",
   });
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
   const [selectedUser, setSelectedUser] = useState(null);
