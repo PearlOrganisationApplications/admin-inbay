@@ -286,7 +286,7 @@ const Attendance = () => {
   };
 
   // ---- CSV export ----
- const handleExport = () => {
+const handleExport = () => {
   const exportData = rawResponse?.data
     ? rawResponse.data
     : rawResponse?.employees
@@ -296,6 +296,7 @@ const Attendance = () => {
             day: rawResponse.day,
             summary: rawResponse.summary,
             employees: rawResponse.employees,
+            absent_users: rawResponse.absent_users || [],
           },
         ]
       : [];
@@ -340,43 +341,15 @@ const Attendance = () => {
   const rows = [];
 
   exportData.forEach((dayData) => {
-    if (
-      !dayData.employees ||
-      dayData.employees.length === 0
-    ) {
-      rows.push(
-        [
-          dayData.date || "",
-          dayData.day || "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "Absent",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-        ]
-          .map(escapeCSV)
-          .join(","),
-      );
+    const presentAndLateEmployees = dayData.employees || [];
+    const absentEmployees = dayData.absent_users || [];
 
-      return;
-    }
+    const allEmployees = [
+      ...presentAndLateEmployees,
+      ...absentEmployees,
+    ];
 
-    dayData.employees
+    allEmployees
       .filter((emp) => {
         const matchesEmployee =
           selectedEmployees.length === 0 ||
@@ -387,7 +360,8 @@ const Attendance = () => {
 
         const matchesShift =
           shiftFilter === "" ||
-          empShift === shiftFilter;
+          empShift === shiftFilter ||
+          emp.attendance_status === "absent";
 
         return matchesEmployee && matchesShift;
       })
@@ -397,9 +371,19 @@ const Attendance = () => {
         const tracking = emp.time_tracking || {};
         const travel = emp.travel_details || {};
 
-        const status =
-          emp.status ||
-          (emp.present ? "Present" : "Absent");
+        let status = emp.attendance_status || "";
+
+        if (status === "present") {
+          status = "Present";
+        } else if (status === "late") {
+          status = "Late";
+        } else if (status === "absent") {
+          status = "Absent";
+        } else {
+          status =
+            emp.status ||
+            (emp.present ? "Present" : "Absent");
+        }
 
         rows.push(
           [
@@ -458,6 +442,7 @@ const Attendance = () => {
 
   document.body.appendChild(a);
   a.click();
+
   document.body.removeChild(a);
 
   window.URL.revokeObjectURL(url);
