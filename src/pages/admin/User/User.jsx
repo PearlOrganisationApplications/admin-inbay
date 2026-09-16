@@ -14,6 +14,7 @@ import {
   CheckCircle,
   XCircle,
 } from "lucide-react";
+import * as XLSX from "xlsx";
 import { fetchUsers, fetchSingleUser, handleResetPassword, toggleUserStatus, handleCreateUser } from "./userPageApis";
 import ResetPasswordModal from "./Modals/ResetPasswordModal";
 import CreateUserModal from "./Modals/CreateUserModal";
@@ -103,25 +104,26 @@ const User = () => {
     setStatusFilter(e.target.value);
     setCurrentPage(1);
   };
+const handleExport = () => {
+  if (filteredUsers.length === 0) {
+    return alert("No data to export!");
+  }
 
-  const handleExport = () => {
-    if (filteredUsers.length === 0) return alert("No data to export!");
-    const headers = ["ID", "Name", "Email", "Role", "Status"];
-    const rows = filteredUsers
-      .map((user) => {
-        const status = Number(user.is_active) === 1 ? "Active" : "Inactive";
-        return `"${user.id}","${user.name}","${user.email}","${user.role}","${status}"`;
-      })
-      .join("\n");
-    const csv = headers.join(",") + "\n" + rows;
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "users_list.csv";
-    a.click();
-  };
+  const data = filteredUsers.map((user) => ({
+    ID: user.id,
+    Name: user.name,
+    Email: user.email,
+    Role: user.role,
+    Status: Number(user.is_active) === 1 ? "Active" : "Inactive",
+  }));
 
+  const worksheet = XLSX.utils.json_to_sheet(data);
+  const workbook = XLSX.utils.book_new();
+
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Users");
+
+  XLSX.writeFile(workbook, "users_list.xlsx");
+};
   return (
     <div className="bg-gray-50 h-full w-full flex flex-col font-sans relative overflow-x-hidden">
       {" "}

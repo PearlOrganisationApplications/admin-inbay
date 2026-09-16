@@ -68,7 +68,7 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-40 h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 md:px-6 shadow-sm">
-      
+
       {/* --- Left Side --- */}
       <div className="flex items-center gap-3 flex-1">
         {/* 
@@ -76,13 +76,13 @@ export default function Header() {
            It prevents the search bar from going under your Sidebar Toggle button.
         */}
         <div className="ml-12 md:ml-0 flex items-center w-full max-w-[320px]">
-         
+
         </div>
       </div>
 
       {/* --- Right Side --- */}
       <div className="flex items-center gap-3 md:gap-6">
-        
+
         {/* Notifications */}
         <button className="relative p-2 hover:bg-gray-100 rounded-full transition-colors">
           <FaBell className="text-gray-600 text-lg" />
@@ -114,15 +114,18 @@ export default function Header() {
             <FaChevronDown className={`text-gray-400 text-[10px] transition-transform ${open ? 'rotate-180' : ''}`} />
           </button>
 
-          {/* Dropdown Menu */} 
+          {/* Dropdown Menu */}
           {open && (
             <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden animate-in fade-in zoom-in duration-200">
               <div className="px-4 py-3 border-b border-gray-50 sm:hidden">
                 <p className="text-sm font-bold text-gray-800">{user?.name}</p>
                 <p className="text-xs text-gray-400">{user?.email}</p>
               </div>
-              
-              <button className="w-full text-left px-4 py-3 text-sm text-gray-600 hover:bg-purple-50 hover:text-purple-700 transition-colors">
+
+              <button
+                onClick={() => navigate("/settings")}
+                className="w-full text-left px-4 py-3 text-sm text-gray-600 hover:bg-purple-50 hover:text-purple-700 transition-colors"
+              >
                 My Profile
               </button>
 

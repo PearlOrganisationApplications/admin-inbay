@@ -87,7 +87,7 @@ const AttendanceFilters = ({
     };
 
     return (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 mb-6">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 mb-6 mt-6">
 
             {/* Tabs */}
 

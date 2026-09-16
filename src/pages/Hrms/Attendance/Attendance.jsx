@@ -16,6 +16,7 @@ import {
   UserX,
   Loader2,
 } from "lucide-react";
+import * as XLSX from "xlsx";
 import { useNavigate } from "react-router-dom";
 import { fetchAttendance } from "./attendanceApis";
 import AttendanceFilters from "./AttendanceFilters";
@@ -286,11 +287,11 @@ const Attendance = () => {
   };
 
   // ---- CSV export ----
-const handleExport = () => {
-  const exportData = rawResponse?.data
-    ? rawResponse.data
-    : rawResponse?.employees
-      ? [
+  const handleExport = () => {
+    const exportData = rawResponse?.data
+      ? rawResponse.data
+      : rawResponse?.employees
+        ? [
           {
             date: rawResponse.date,
             day: rawResponse.day,
@@ -299,154 +300,175 @@ const handleExport = () => {
             absent_users: rawResponse.absent_users || [],
           },
         ]
-      : [];
+        : [];
 
-  if (!exportData.length) {
-    return alert("No data to export!");
-  }
+    if (!exportData.length) {
+      return alert("No data to export!");
+    }
+    const headers = [
+      "Date",
+      "Day",
+      "Name",
+      "Email",
+      "Mobile Number",
+      "Designation",
+      "Reporting To",
+      "HQ",
+      "Status",
+      "Scheduled Timing",
+      "Check In",
+      "Check Out",
+      "Total Hours",
+      "Start Location",
+      "End Location",
+      "Start KM (Odometer)",
+      "End KM (Odometer)",
+      "Total KM (Odometer)",
+      "GPS KM",
+      "Morning Remark",
+      "Evening Remark",
+      "Selfie IN",
+      "Selfie OUT",
+      "Speedometer IN",
+      "Speedometer OUT",
+    ];
+    const escapeCSV = (value) => {
+      if (value === null || value === undefined) {
+        return "";
+      }
 
-  const headers = [
-    "Date",
-    "Day",
-    "Name",
-    "Email",
-    "Mobile Number",
-    "Designation",
-    "Reporting To",
-    "HQ",
-    "Status",
-    "Scheduled Timing",
-    "Check In",
-    "Check Out",
-    "Total Hours",
-    "Start Location",
-    "End Location",
-    "GPS KM",
-    "Morning Remark",
-    "Evening Remark",
-    "Selfie IN",
-    "Selfie OUT",
-    "Speedometer IN",
-    "Speedometer OUT",
-  ];
+      return `"${String(value).replace(/"/g, '""')}"`;
+    };
 
-  const escapeCSV = (value) => {
-    if (value === null || value === undefined) {
-      return "";
+    const rows = [];
+
+    exportData.forEach((dayData) => {
+      const presentAndLateEmployees = dayData.employees || [];
+      const absentEmployees = dayData.absent_users || [];
+
+      const allEmployees = [
+        ...presentAndLateEmployees,
+        ...absentEmployees,
+      ];
+
+      allEmployees
+        .filter((emp) => {
+          const matchesEmployee =
+            selectedEmployees.length === 0 ||
+            selectedEmployees.includes(emp.name);
+
+          const empShift =
+            emp.time_tracking?.scheduled || "";
+
+          const matchesShift =
+            shiftFilter === "" ||
+            empShift === shiftFilter ||
+            emp.attendance_status === "absent";
+
+          return matchesEmployee && matchesShift;
+        })
+        .forEach((emp) => {
+          const images = emp.attendance_images || {};
+          const remarks = emp.remarks || {};
+          const tracking = emp.time_tracking || {};
+          const travel = emp.travel_details || {};
+
+          let status = emp.attendance_status || "";
+
+          if (status === "present") {
+            status = "Present";
+          } else if (status === "late") {
+            status = "Late";
+          } else if (status === "absent") {
+            status = "Absent";
+          } else {
+            status =
+              emp.status ||
+              (emp.present ? "Present" : "Absent");
+          }
+
+          rows.push(
+            [
+              emp.date || dayData.date || "",
+              emp.day || dayData.day || "",
+              emp.name || "",
+              emp.email || "",
+              emp.mobile_number || "",
+              emp.designation || "",
+              emp.reporting_to || "",
+              emp.hq || "",
+              status,
+              tracking.scheduled || "",
+              tracking.check_in || "",
+              tracking.check_out || "",
+              tracking.total_hours || "",
+              travel.start_location || "",
+              travel.end_location || "",
+              travel.start_km || "",
+              travel.end_km || "",
+              travel.total_km || "",
+              travel.gps_km || "",
+              remarks.morning || "",
+              remarks.evening || "",
+              images.selfie_photo_in || "",
+              images.selfie_photo_out || "",
+              images.speedometer_photo_in || "",
+              images.speedometer_photo_out || "",
+            ]
+              .map(escapeCSV)
+              .join(","),
+          );
+        });
+    });
+
+    if (!rows.length) {
+      return alert(
+        "No matching records to export for the current filters!",
+      );
     }
 
-    return `"${String(value).replace(/"/g, '""')}"`;
-  };
+   const worksheetData = [
+  headers,
+  ...rows.map((row) =>
+    row.split(",").map((value) =>
+      value.replace(/^"|"$/g, "").replace(/""/g, '"')
+    )
+  ),
+];
+const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
 
-  const rows = [];
+const workbook = XLSX.utils.book_new();
 
-  exportData.forEach((dayData) => {
-    const presentAndLateEmployees = dayData.employees || [];
-    const absentEmployees = dayData.absent_users || [];
+XLSX.utils.book_append_sheet(
+  workbook,
+  worksheet,
+  "Attendance Report"
+);
 
-    const allEmployees = [
-      ...presentAndLateEmployees,
-      ...absentEmployees,
-    ];
-
-    allEmployees
-      .filter((emp) => {
-        const matchesEmployee =
-          selectedEmployees.length === 0 ||
-          selectedEmployees.includes(emp.name);
-
-        const empShift =
-          emp.time_tracking?.scheduled || "";
-
-        const matchesShift =
-          shiftFilter === "" ||
-          empShift === shiftFilter ||
-          emp.attendance_status === "absent";
-
-        return matchesEmployee && matchesShift;
-      })
-      .forEach((emp) => {
-        const images = emp.attendance_images || {};
-        const remarks = emp.remarks || {};
-        const tracking = emp.time_tracking || {};
-        const travel = emp.travel_details || {};
-
-        let status = emp.attendance_status || "";
-
-        if (status === "present") {
-          status = "Present";
-        } else if (status === "late") {
-          status = "Late";
-        } else if (status === "absent") {
-          status = "Absent";
-        } else {
-          status =
-            emp.status ||
-            (emp.present ? "Present" : "Absent");
-        }
-
-        rows.push(
-          [
-            emp.date || dayData.date || "",
-            emp.day || dayData.day || "",
-            emp.name || "",
-            emp.email || "",
-            emp.mobile_number || "",
-            emp.designation || "",
-            emp.reporting_to || "",
-            emp.hq || "",
-            status,
-            tracking.scheduled || "",
-            tracking.check_in || "",
-            tracking.check_out || "",
-            tracking.total_hours || "",
-            travel.start_location || "",
-            travel.end_location || "",
-            travel.gps_km || "",
-            remarks.morning || "",
-            remarks.evening || "",
-            images.selfie_photo_in || "",
-            images.selfie_photo_out || "",
-            images.speedometer_photo_in || "",
-            images.speedometer_photo_out || "",
-          ]
-            .map(escapeCSV)
-            .join(","),
-        );
-      });
-  });
-
-  if (!rows.length) {
-    return alert(
-      "No matching records to export for the current filters!",
+XLSX.writeFile(
+  workbook,
+  `attendance_report_${Date.now()}.xlsx`
+);
+    const blob = new Blob(
+      ["\uFEFF" + csvContent],
+      {
+        type: "text/csv;charset=utf-8;",
+      },
     );
-  }
 
-  const csvContent = [
-    headers.map(escapeCSV).join(","),
-    ...rows,
-  ].join("\n");
+    const url = window.URL.createObjectURL(blob);
 
-  const blob = new Blob(
-    ["\uFEFF" + csvContent],
-    {
-      type: "text/csv;charset=utf-8;",
-    },
-  );
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `attendance_report_${Date.now()}.csv`;
 
-  const url = window.URL.createObjectURL(blob);
+    document.body.appendChild(a);
+    a.click();
 
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `attendance_report_${Date.now()}.csv`;
+    document.body.removeChild(a);
 
-  document.body.appendChild(a);
-  a.click();
-
-  document.body.removeChild(a);
-
-  window.URL.revokeObjectURL(url);
-};
+    window.URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="bg-gray-50 h-screen flex flex-col font-sans">
@@ -627,11 +649,10 @@ const handleExport = () => {
                     <button
                       key={page}
                       onClick={() => setCurrentPage(page)}
-                      className={`w-9 h-9 rounded-lg text-sm font-medium transition-all duration-150 ${
-                        currentPage === page
+                      className={`w-9 h-9 rounded-lg text-sm font-medium transition-all duration-150 ${currentPage === page
                           ? "bg-purple-600 text-white shadow-sm scale-105"
                           : "text-gray-600 hover:bg-gray-100"
-                      }`}
+                        }`}
                     >
                       {page}
                     </button>
