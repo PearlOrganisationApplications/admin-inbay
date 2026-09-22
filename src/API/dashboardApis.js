@@ -11,5 +11,5 @@ export const getUserTrackingById = (id) => {
 
 
 export const getUsersByManagerId = (managerId)=>{
-    return api.get(`/admin/manager-users/${managerId}`);
+    return api.get(`/admin/manager/${managerId}/users`);
 }

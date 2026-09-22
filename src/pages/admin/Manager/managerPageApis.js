@@ -164,9 +164,6 @@ export const handleResetPassword = async (
 };
 
 
-
-
-
 export const handleViewManager = async (
   managerId,
   setSelectedManagerData,
@@ -177,7 +174,7 @@ export const handleViewManager = async (
     const token = localStorage.getItem("token");
 
     const response = await fetch(
-      `https://test.pearl-developer.com/Inbay_Innovations/public/api/admin/manager/${managerId}/users`,
+      `https://test.pearl-developer.com/Inbay_Innovations/public/api/admin/manager/users/${managerId}`,
       {
         method: "GET",
         headers: {
