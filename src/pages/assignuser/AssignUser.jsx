@@ -20,13 +20,9 @@ import {
 import api from "../../API/axios";
 import { getUsersByManagerId } from "../../API/dashboardApis";
 
-/* -------------------------------------------------------------------------- */
-/*  Constants                                                                  */
-/* -------------------------------------------------------------------------- */
-
 const BASE_URL =
   "https://test.pearl-developer.com/Inbay_Innovations/public/api";
-
+const IMAGE_BASE = "https://test.pearl-developer.com/Inbay_Innovations/public/";
 const DEFAULT_COUNTS = {
   total_users: 0,
   active_users: 0,
@@ -70,8 +66,11 @@ function useDebouncedValue(value, delayMs = 250) {
 function initials(name, fallback = "U") {
   return name?.charAt(0)?.toUpperCase() || fallback;
 }
-
-function extractList(payload, keys = ["data", "users"]) {
+function imageUrl(path) {
+  if (!path) return null;
+  return path.startsWith("http") ? path : IMAGE_BASE + path;
+}
+function extractList(payload, keys = ["data", "users", "assigned_users"]) {
   if (Array.isArray(payload)) return payload;
   for (const key of keys) {
     if (Array.isArray(payload?.[key])) return payload[key];
@@ -323,7 +322,15 @@ const AssignUser = () => {
     } finally {
       setAssigning(false);
     }
-  }, [selectedManager, selectedUsers, users, managers, refetchAssigned, refetchAll, showModal]);
+  }, [
+    selectedManager,
+    selectedUsers,
+    users,
+    managers,
+    refetchAssigned,
+    refetchAll,
+    showModal,
+  ]);
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-[#f9fafb]">
@@ -707,9 +714,9 @@ const UserRow = ({ user, selected, alreadyAssigned, onToggle }) => (
 
     <td className="py-3 pr-3">
       <div className="flex items-center gap-3">
-        {user.profile_image ? (
+        {imageUrl(user.profile_image) ? (
           <img
-            src={user.profile_image}
+            src={imageUrl(user.profile_image)}
             alt={user.name || "User"}
             className="w-8 h-8 rounded-full object-cover flex-shrink-0"
           />
@@ -806,9 +813,9 @@ const AssignedTable = ({ users, loading, onRefresh }) => (
               <tr key={user.id}>
                 <td className="py-3 pl-4 pr-3">
                   <div className="flex items-center gap-3">
-                    {user.profile_image ? (
+                    {imageUrl(user.profile_image) ? (
                       <img
-                        src={user.profile_image}
+                        src={imageUrl(user.profile_image)}
                         alt={user.name || "User"}
                         className="w-8 h-8 rounded-full object-cover flex-shrink-0"
                       />
