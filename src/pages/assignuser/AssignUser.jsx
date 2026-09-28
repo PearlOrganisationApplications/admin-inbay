@@ -1,9 +1,4 @@
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Users,
   UserCheck,
@@ -29,7 +24,8 @@ import { getUsersByManagerId } from "../../API/dashboardApis";
 /*  Constants                                                                  */
 /* -------------------------------------------------------------------------- */
 
-const BASE_URL = "https://test.pearl-developer.com/Inbay_Innovations/public/api";
+const BASE_URL =
+  "https://test.pearl-developer.com/Inbay_Innovations/public/api";
 
 const DEFAULT_COUNTS = {
   total_users: 0,
@@ -111,7 +107,7 @@ function useManagersAndUsers(onError) {
       console.error("Error fetching data:", error);
       onError?.(
         "Failed to Load Data",
-        error?.response?.data?.message || "Unable to fetch managers and users."
+        error?.response?.data?.message || "Unable to fetch managers and users.",
       );
     } finally {
       setLoading(false);
@@ -147,7 +143,7 @@ function useAssignedUsers(managerId, onError) {
       onError?.(
         "Failed to Load Assigned Users",
         error?.response?.data?.message ||
-          "Unable to fetch users assigned to this manager."
+          "Unable to fetch users assigned to this manager.",
       );
     } finally {
       setLoading(false);
@@ -172,17 +168,34 @@ const AssignUser = () => {
   const [managerSearch, setManagerSearch] = useState("");
   const [activeTab, setActiveTab] = useState("available"); // "available" | "assigned"
   const [assigning, setAssigning] = useState(false);
-  const [modal, setModal] = useState({ show: false, type: "success", title: "", message: "" });
+  const [modal, setModal] = useState({
+    show: false,
+    type: "success",
+    title: "",
+    message: "",
+  });
 
   const debouncedUserSearch = useDebouncedValue(userSearch, 250);
 
   const showModal = useCallback((type, title, message) => {
     setModal({ show: true, type, title, message });
   }, []);
-  const showError = useCallback((title, message) => showModal("error", title, message), [showModal]);
-  const closeModal = useCallback(() => setModal((prev) => ({ ...prev, show: false })), []);
+  const showError = useCallback(
+    (title, message) => showModal("error", title, message),
+    [showModal],
+  );
+  const closeModal = useCallback(
+    () => setModal((prev) => ({ ...prev, show: false })),
+    [],
+  );
 
-  const { managers, users, counts, loading, refetch: refetchAll } = useManagersAndUsers(showError);
+  const {
+    managers,
+    users,
+    counts,
+    loading,
+    refetch: refetchAll,
+  } = useManagersAndUsers(showError);
   const {
     assignedUsers,
     loading: assignedLoading,
@@ -191,7 +204,7 @@ const AssignUser = () => {
 
   const isAlreadyAssigned = useCallback(
     (userId) => assignedUsers.some((u) => String(u.id) === String(userId)),
-    [assignedUsers]
+    [assignedUsers],
   );
 
   const handleManagerSelect = useCallback((manager) => {
@@ -207,10 +220,10 @@ const AssignUser = () => {
       setSelectedUsers((prev) =>
         prev.some((u) => u.id === user.id)
           ? prev.filter((u) => u.id !== user.id)
-          : [...prev, user]
+          : [...prev, user],
       );
     },
-    [isAlreadyAssigned]
+    [isAlreadyAssigned],
   );
 
   const filteredManagers = useMemo(() => {
@@ -218,7 +231,8 @@ const AssignUser = () => {
     if (!search) return managers;
     return managers.filter(
       (m) =>
-        m.name?.toLowerCase().includes(search) || m.email?.toLowerCase().includes(search)
+        m.name?.toLowerCase().includes(search) ||
+        m.email?.toLowerCase().includes(search),
     );
   }, [managers, managerSearch]);
 
@@ -229,22 +243,25 @@ const AssignUser = () => {
       const name = user.name?.toLowerCase() || "";
       const email = user.email?.toLowerCase() || "";
       const role = user.role?.toLowerCase() || "";
-      return name.includes(search) || email.includes(search) || role.includes(search);
+      return (
+        name.includes(search) || email.includes(search) || role.includes(search)
+      );
     });
   }, [users, debouncedUserSearch]);
 
   const availableUsers = useMemo(
     () => filteredUsers.filter((u) => !isAlreadyAssigned(u.id)),
-    [filteredUsers, isAlreadyAssigned]
+    [filteredUsers, isAlreadyAssigned],
   );
 
   const isUserSelected = useCallback(
     (userId) => selectedUsers.some((u) => u.id === userId),
-    [selectedUsers]
+    [selectedUsers],
   );
 
   const allAvailableSelected =
-    availableUsers.length > 0 && availableUsers.every((u) => isUserSelected(u.id));
+    availableUsers.length > 0 &&
+    availableUsers.every((u) => isUserSelected(u.id));
 
   const handleSelectAll = useCallback(() => {
     if (!selectedManager || availableUsers.length === 0) return;
@@ -252,7 +269,9 @@ const AssignUser = () => {
     setSelectedUsers((prev) => {
       const allSelected = availableUsers.every((u) => isUserSelected(u.id));
       if (allSelected) {
-        return prev.filter((selected) => !availableUsers.some((u) => u.id === selected.id));
+        return prev.filter(
+          (selected) => !availableUsers.some((u) => u.id === selected.id),
+        );
       }
       const existingIds = new Set(prev.map((u) => u.id));
       const newUsers = availableUsers.filter((u) => !existingIds.has(u.id));
@@ -271,13 +290,24 @@ const AssignUser = () => {
       });
       const result = response.data;
 
+      // API ke response ki IDs ko naam mein convert karo
+      const getUserName = (id) =>
+        users.find((u) => String(u.id) === String(id))?.name || `User #${id}`;
+
+      const managerName =
+        managers.find((m) => String(m.id) === String(result.manager_id))
+          ?.name || selectedManager.name;
+
+      const assignedNames = (result.assigned_users || []).map(getUserName);
+
       showModal(
         "success",
         "Users Assigned",
-        result.message ||
-          `${selectedUsers.length} users assigned successfully to ${selectedManager.name}.`
+        assignedNames.length > 0
+          ? `${assignedNames.join(", ")} successfully assigned to ${managerName}.`
+          : result.message ||
+              `${selectedUsers.length} users assigned successfully to ${managerName}.`,
       );
-
       setSelectedUsers([]);
       setActiveTab("assigned");
       await refetchAssigned();
@@ -287,13 +317,13 @@ const AssignUser = () => {
       showModal(
         "error",
         "Assignment Failed",
-        error?.response?.data?.message || "Assignment failed. Please try again."
+        error?.response?.data?.message ||
+          "Assignment failed. Please try again.",
       );
     } finally {
       setAssigning(false);
     }
-  }, [selectedManager, selectedUsers, refetchAssigned, refetchAll, showModal]);
-
+  }, [selectedManager, selectedUsers, users, managers, refetchAssigned, refetchAll, showModal]);
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-[#f9fafb]">
@@ -388,8 +418,16 @@ const TopBar = ({ counts, managersCount }) => (
 
       <div className="flex items-stretch divide-x divide-[#e5e7eb] border border-[#e5e7eb] rounded-xl overflow-hidden self-start">
         <Metric label="Total users" value={counts.total_users} />
-        <Metric label="Active" value={counts.active_users} valueClass="text-emerald-600" />
-        <Metric label="Managers" value={managersCount} valueClass="text-[#8b2cf5]" />
+        <Metric
+          label="Active"
+          value={counts.active_users}
+          valueClass="text-emerald-600"
+        />
+        <Metric
+          label="Managers"
+          value={managersCount}
+          valueClass="text-[#8b2cf5]"
+        />
       </div>
     </div>
   </div>
@@ -435,7 +473,9 @@ const ManagerRail = ({
 
     <div className="flex-1 overflow-y-auto custom-scrollbar px-2 py-2">
       {managers.length === 0 ? (
-        <p className="text-xs text-[#6b7280] text-center py-8 px-4">No managers match your search.</p>
+        <p className="text-xs text-[#6b7280] text-center py-8 px-4">
+          No managers match your search.
+        </p>
       ) : (
         managers.map((mgr) => (
           <ManagerRow
@@ -468,12 +508,16 @@ const ManagerRow = ({ manager, isSelected, onSelect }) => (
       {initials(manager.name)}
     </div>
     <div className="min-w-0 flex-1">
-      <p className={`text-sm font-bold truncate ${isSelected ? "text-[#8b2cf5]" : "text-gray-800"}`}>
+      <p
+        className={`text-sm font-bold truncate ${isSelected ? "text-[#8b2cf5]" : "text-gray-800"}`}
+      >
         {manager.name}
       </p>
       <p className="text-[11px] truncate text-gray-400">{manager.email}</p>
     </div>
-    {isSelected && <ArrowRight size={15} className="text-[#8b2cf5] flex-shrink-0" />}
+    {isSelected && (
+      <ArrowRight size={15} className="text-[#8b2cf5] flex-shrink-0" />
+    )}
   </button>
 );
 
@@ -486,9 +530,12 @@ const NoManagerState = () => (
     <div className="w-14 h-14 rounded-2xl bg-purple-50 text-[#8b2cf5] flex items-center justify-center mb-4">
       <ShieldCheck size={26} />
     </div>
-    <h3 className="font-black text-[#111827] text-lg">Pick a manager to get started</h3>
+    <h3 className="font-black text-[#111827] text-lg">
+      Pick a manager to get started
+    </h3>
     <p className="text-sm text-[#6b7280] mt-1 max-w-xs">
-      Choose someone from the list on the left to see and manage their assigned users.
+      Choose someone from the list on the left to see and manage their assigned
+      users.
     </p>
   </div>
 );
@@ -499,7 +546,9 @@ const WorkspaceHeader = ({ manager }) => (
       {initials(manager.name)}
     </div>
     <div>
-      <h2 className="text-lg font-black text-[#111827] leading-tight">{manager.name}</h2>
+      <h2 className="text-lg font-black text-[#111827] leading-tight">
+        {manager.name}
+      </h2>
       <p className="text-xs text-[#6b7280] flex items-center gap-1">
         <Mail size={11} />
         {manager.email}
@@ -512,7 +561,12 @@ const WorkspaceHeader = ({ manager }) => (
 /*  Tab switcher                                                              */
 /* -------------------------------------------------------------------------- */
 
-const TabSwitcher = ({ activeTab, onChange, assignedCount, availableCount }) => (
+const TabSwitcher = ({
+  activeTab,
+  onChange,
+  assignedCount,
+  availableCount,
+}) => (
   <div className="flex items-center gap-6 border-b border-[#e5e7eb] mb-5">
     <TabButton
       label="Select users"
@@ -582,7 +636,9 @@ const AvailableTable = ({
       <div className="flex items-center gap-4 text-xs">
         <span className="text-[#6b7280] font-medium">
           {selectedCount > 0 ? (
-            <span className="text-[#8b2cf5] font-bold">{selectedCount} selected</span>
+            <span className="text-[#8b2cf5] font-bold">
+              {selectedCount} selected
+            </span>
           ) : (
             `${availableUsers.length} available`
           )}
@@ -631,8 +687,8 @@ const UserRow = ({ user, selected, alreadyAssigned, onToggle }) => (
       alreadyAssigned
         ? "bg-emerald-50/50 cursor-default"
         : selected
-        ? "bg-purple-50 cursor-pointer"
-        : "hover:bg-[#f9fafb] cursor-pointer"
+          ? "bg-purple-50 cursor-pointer"
+          : "hover:bg-[#f9fafb] cursor-pointer"
     }`}
   >
     <td className="pl-4 py-3 w-10">
@@ -641,8 +697,8 @@ const UserRow = ({ user, selected, alreadyAssigned, onToggle }) => (
           alreadyAssigned
             ? "bg-emerald-500 border-emerald-500 text-white"
             : selected
-            ? "bg-[#8b2cf5] border-[#8b2cf5] text-white"
-            : "border-gray-300"
+              ? "bg-[#8b2cf5] border-[#8b2cf5] text-white"
+              : "border-gray-300"
         }`}
       >
         {(selected || alreadyAssigned) && <Check size={13} strokeWidth={3} />}
@@ -679,7 +735,9 @@ const UserRow = ({ user, selected, alreadyAssigned, onToggle }) => (
     <td className="py-3 pr-3 hidden sm:table-cell">
       <span
         className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
-          user.is_active ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"
+          user.is_active
+            ? "bg-emerald-100 text-emerald-700"
+            : "bg-red-100 text-red-700"
         }`}
       >
         {user.is_active ? "Active" : "Inactive"}
@@ -733,7 +791,9 @@ const AssignedTable = ({ users, loading, onRefresh }) => (
     ) : users.length === 0 ? (
       <div className="py-16 text-center">
         <Users className="w-10 h-10 text-gray-200 mx-auto mb-2" />
-        <p className="text-sm font-bold text-[#111827]">No users assigned yet</p>
+        <p className="text-sm font-bold text-[#111827]">
+          No users assigned yet
+        </p>
         <p className="text-xs text-[#6b7280] mt-0.5">
           Switch to "Select users" to assign some.
         </p>
@@ -830,7 +890,8 @@ const AssignmentBar = ({ manager, selectedCount, assigning, onAssign }) => (
 
 const ResultModal = ({ modal, onClose }) => {
   if (!modal.show) return null;
-  const { ring, iconColor, icon, btn } = MODAL_CONFIG[modal.type] || MODAL_CONFIG.success;
+  const { ring, iconColor, icon, btn } =
+    MODAL_CONFIG[modal.type] || MODAL_CONFIG.success;
 
   return (
     <div
@@ -849,11 +910,15 @@ const ResultModal = ({ modal, onClose }) => {
         </button>
 
         <div className="flex flex-col items-center text-center pt-2">
-          <div className={`w-14 h-14 rounded-2xl ${ring} ${iconColor} flex items-center justify-center mb-4`}>
+          <div
+            className={`w-14 h-14 rounded-2xl ${ring} ${iconColor} flex items-center justify-center mb-4`}
+          >
             {icon}
           </div>
           <h3 className="text-lg font-black text-[#111827]">{modal.title}</h3>
-          <p className="text-sm text-[#6b7280] mt-2 leading-relaxed">{modal.message}</p>
+          <p className="text-sm text-[#6b7280] mt-2 leading-relaxed">
+            {modal.message}
+          </p>
         </div>
 
         <button
