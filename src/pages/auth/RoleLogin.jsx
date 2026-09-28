@@ -1,13 +1,15 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaEnvelope, FaLock, FaUserShield } from "react-icons/fa";
+import { FaEnvelope, FaEye, FaEyeSlash, FaLock, FaUserShield } from "react-icons/fa";
 import toast from "react-hot-toast";
+import { adminLogin } from "../../API/adminAuth";
 
 const Login = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -20,21 +22,21 @@ const Login = () => {
     try {
       setLoading(true);
 
-      const response = await fetch(
-        "https://test.pearl-developer.com/Inbay_Innovations/public/api/admin-login",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            email: email,
-            password: password,
-          }),
-        }
-      );
-
-      const data = await response.json();
+      // const response = await fetch(
+      //   "https://test.pearl-developer.com/Inbay_Innovations/public/api/admin-login",
+      //   {
+      //     method: "POST",
+      //     headers: {
+      //       "Content-Type": "application/json",
+      //     },
+      //     body: JSON.stringify({
+      //       email: email,
+      //       password: password,
+      //     }),
+      //   }
+      // );
+      const response = await adminLogin({ email, password });
+      const data = await response.data;
 
       if (data.success) {
 
@@ -81,17 +83,38 @@ const Login = () => {
           <div>
             <label className="text-sm text-white/70">Email</label>
 
-            <div className="relative mt-1">
-              <FaEnvelope className="absolute left-3 top-1/2 -translate-y-1/2 text-white/50" />
+            <form autoComplete="off">
+              {/* Fake fields */}
+              <input
+                type="text"
+                name="username"
+                autoComplete="username"
+                className="absolute opacity-0 w-0 h-0 pointer-events-none"
+                tabIndex={-1}
+              />
 
               <input
-                type="email"
-                placeholder="admin@gmail.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/10 border border-white/20 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                type="password"
+                name="password"
+                autoComplete="current-password"
+                className="absolute opacity-0 w-0 h-0 pointer-events-none"
+                tabIndex={-1}
               />
-            </div>
+
+              <div className="relative mt-1">
+                <FaEnvelope className="absolute left-3 top-1/2 -translate-y-1/2 text-white/50" />
+
+                <input
+                  type="email"
+                  name={`email_${Math.random()}`}
+                  autoComplete="new-password"
+                  placeholder="Email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/10 border border-white/20 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+            </form>
           </div>
 
           <div>
@@ -101,12 +124,20 @@ const Login = () => {
               <FaLock className="absolute left-3 top-1/2 -translate-y-1/2 text-white/50" />
 
               <input
-                type="password"
+                type={showPassword ? "text" : "password"}
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/10 border border-white/20 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full pl-10 pr-12 py-3 rounded-xl bg-white/10 border border-white/20 focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
+
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-white/60 hover:text-white"
+              >
+                {showPassword ? <FaEye /> : <FaEyeSlash />}
+              </button>
             </div>
           </div>
 

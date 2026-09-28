@@ -1,4 +1,4 @@
-import { User } from "lucide-react";
+import { PlusCircle, User } from "lucide-react";
 import {
   FaHome,
   FaUsers,
@@ -9,6 +9,7 @@ import {
   FaUserTie,
   FaMoneyBill,
   FaMapMarkerAlt,
+  FaHardHat 
 } from "react-icons/fa";
 
 export const menuConfig = {
@@ -28,6 +29,11 @@ export const menuConfig = {
       icon: FaUserTie,
       path: "/manager",
     },
+    // {
+    //   name: "Add Client Type",
+    //   icon: PlusCircle,
+    //   path: "/add-client-type",
+    // },
     {
       name: "HRMS",
       icon: FaLayerGroup,

@@ -14,6 +14,11 @@ import {
   CheckCircle,
   XCircle,
 } from "lucide-react";
+import * as XLSX from "xlsx";
+import { fetchUsers, fetchSingleUser, handleResetPassword, toggleUserStatus, handleCreateUser } from "./userPageApis";
+import ResetPasswordModal from "./Modals/ResetPasswordModal";
+import CreateUserModal from "./Modals/CreateUserModal";
+import ViewUserModal from "./Modals/ViewUserModal";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -21,7 +26,7 @@ const User = () => {
   const [users, setUsers] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("Active");
   const [currentPage, setCurrentPage] = useState(1);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -31,131 +36,21 @@ const User = () => {
     email: "",
     password: "",
     per_km_rate: "",
+    hq: "",
+    designation:"",
+    mobile_number:"",
   });
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
   const [selectedUser, setSelectedUser] = useState(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+  const [resetPassword, setResetPassword] = useState("");
+  const [selectedUserId, setSelectedUserId] = useState(null);
+
   useEffect(() => {
-    fetchUsers();
+    fetchUsers(setUsers);
   }, []);
-
-  const fetchUsers = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(
-        "https://test.pearl-developer.com/Inbay_Innovations/public/api/admin/get/user",
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        },
-      );
-      const data = await response.json();
-      setUsers(Array.isArray(data) ? data : data?.data || []);
-    } catch (error) {
-      console.error("User API error:", error);
-    }
-  };
-
-  const fetchSingleUser = async (userId) => {
-    try {
-      const token = localStorage.getItem("token");
-
-      const response = await fetch(
-        `https://test.pearl-developer.com/Inbay_Innovations/public/api/admin/get/user/${userId}`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        },
-      );
-
-      const result = await response.json();
-
-      if (response.ok && result.status) {
-        setSelectedUser(result.data);
-        setIsViewModalOpen(true);
-      } else {
-        alert("User fetch failed");
-      }
-    } catch (error) {
-      alert("Error");
-    }
-  };
-
-  const toggleUserStatus = async (userId, currentIsActive) => {
-    try {
-      const token = localStorage.getItem("token");
-      // Agar current status 1 (Active) hai toh 0 (Deactivate) bhejenge, warna 1 (Activate)
-      const newStatus = currentIsActive === 1 ? 0 : 1;
-
-      const response = await fetch(
-        "https://test.pearl-developer.com/Inbay_Innovations/public/api/admin/user-status",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            user_id: userId,
-            is_active: newStatus,
-          }),
-        },
-      );
-
-      if (response.ok) {
-        showToast(
-          `User ${newStatus === 1 ? "Activated" : "Deactivated"} successfully!`,
-          "success",
-        );
-        fetchUsers();
-      } else {
-        showToast("Failed to update user status", "error");
-      }
-    } catch (error) {
-      showToast("Error connecting to server", "error");
-    }
-  };
-
-  const handleCreateUser = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(
-        "https://test.pearl-developer.com/Inbay_Innovations/public/api/admin/create-user",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(formData),
-        },
-      );
-
-      const result = await response.json();
-
-      if (response.ok) {
-        showToast("User created successfully!", "success");
-        setIsModalOpen(false);
-        setFormData({ name: "", email: "", password: "", per_km_rate: "" });
-        fetchUsers();
-      } else {
-        showToast(result.message || "Failed to create user", "error");
-      }
-    } catch (error) {
-      showToast("An error occurred. Please try again.", "error");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   const showToast = (message, type) => {
     setToast({ show: true, message, type });
@@ -209,27 +104,29 @@ const User = () => {
     setStatusFilter(e.target.value);
     setCurrentPage(1);
   };
+const handleExport = () => {
+  if (filteredUsers.length === 0) {
+    return alert("No data to export!");
+  }
 
-  const handleExport = () => {
-    if (filteredUsers.length === 0) return alert("No data to export!");
-    const headers = ["ID", "Name", "Email", "Role", "Status"];
-    const rows = filteredUsers
-      .map((user) => {
-        const status = Number(user.is_active) === 1 ? "Active" : "Inactive";
-        return `"${user.id}","${user.name}","${user.email}","${user.role}","${status}"`;
-      })
-      .join("\n");
-    const csv = headers.join(",") + "\n" + rows;
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "users_list.csv";
-    a.click();
-  };
+  const data = filteredUsers.map((user) => ({
+    ID: user.id,
+    Name: user.name,
+    Email: user.email,
+    Role: user.role,
+    Status: Number(user.is_active) === 1 ? "Active" : "Inactive",
+  }));
 
+  const worksheet = XLSX.utils.json_to_sheet(data);
+  const workbook = XLSX.utils.book_new();
+
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Users");
+
+  XLSX.writeFile(workbook, "users_list.xlsx");
+};
   return (
-    <div className="bg-gray-50 h-screen flex flex-col font-sans relative">
+    <div className="bg-gray-50 h-full w-full flex flex-col font-sans relative overflow-x-hidden">
+      {" "}
       {toast.show && (
         <div
           className={`fixed top-5 right-5 z-[100] px-6 py-3 rounded-lg shadow-lg text-white transition-all transform animate-bounce ${toast.type === "success" ? "bg-green-600" : "bg-red-600"}`}
@@ -237,7 +134,6 @@ const User = () => {
           {toast.message}
         </div>
       )}
-
       <div className="bg-white px-6 py-4 shadow-sm border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 flex-shrink-0 z-10">
         <div>
           <h1 className="text-2xl font-extrabold text-gray-800">
@@ -262,12 +158,20 @@ const User = () => {
           </button>
         </div>
       </div>
-
       <div className="bg-white px-6 py-4 shadow-sm border-b border-gray-100 flex flex-col md:flex-row gap-4 items-center z-0 flex-shrink-0">
         <div className="relative w-full md:w-80">
           <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
+          <div style={{ display: "none" }}>
+            <input type="text" autoComplete="username" />
+          </div>
           <input
-            type="text"
+            type="search"
+            name="q_9f8a2"   // change this
+            id="q_9f8a2"     // change this
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="none"
+            spellCheck={false}
             placeholder="Search by Name or Email..."
             value={searchQuery}
             onChange={handleSearch}
@@ -275,7 +179,7 @@ const User = () => {
           />
         </div>
         <div className="flex w-full md:w-auto gap-3">
-          <div className="relative w-full md:w-48">
+          {/* <div className="relative w-full md:w-48">
             <Filter
               className="absolute left-3 top-2.5 text-purple-500"
               size={18}
@@ -292,21 +196,22 @@ const User = () => {
                 </option>
               ))}
             </select>
-          </div>
+          </div> */}
           <select
             value={statusFilter}
             onChange={handleStatusFilter}
             className="w-full md:w-40 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm bg-white cursor-pointer transition-all appearance-none"
           >
-            <option value="">All Statuses</option>
+            
             <option value="Active">Active</option>
             <option value="Inactive">Inactive</option>
           </select>
         </div>
       </div>
-
-      <div className="flex-1 overflow-y-auto p-4 md:p-6">
-        <div className="max-w-7xl mx-auto">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 min-w-0">
+        {" "}
+        <div className="max-w-7xl w-full mx-auto overflow-x-auto">
+          {" "}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div className="bg-white rounded-2xl p-5 border border-purple-100 shadow-sm flex items-center gap-4">
               <div className="w-12 h-12 rounded-full bg-purple-50 flex items-center justify-center text-purple-600">
@@ -346,7 +251,6 @@ const User = () => {
               </div>
             </div>
           </div>
-
           {paginatedUsers.length === 0 ? (
             <div className="text-center py-20 bg-white rounded-2xl border border-gray-100 shadow-sm">
               <p className="text-gray-500 text-lg font-medium">
@@ -365,8 +269,10 @@ const User = () => {
             </div>
           ) : (
             <>
-              <div className="hidden md:block bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="hidden md:block bg-white rounded-2xl border border-gray-200 shadow-sm w-full overflow-x-auto [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:bg-gray-100 [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full">
+                {" "}
                 <table className="w-full text-sm">
+                  {" "}
                   <thead className="bg-gray-50 text-left text-gray-600 border-b border-gray-200">
                     <tr>
                       <th className="p-4 font-semibold uppercase tracking-wider text-xs">
@@ -379,6 +285,9 @@ const User = () => {
                         Role
                       </th>
                       <th className="p-4 font-semibold uppercase tracking-wider text-xs">
+                        Headquarters
+                      </th>
+                      <th className="p-4 font-semibold uppercase tracking-wider text-xs">
                         Rate (Per KM)
                       </th>
                       <th className="p-4 font-semibold uppercase tracking-wider text-xs">
@@ -389,13 +298,13 @@ const User = () => {
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100">
+                  <tbody className="divide-y divide-gray-100 ">
                     {paginatedUsers.map((user) => (
                       <tr
                         key={user.id}
                         className="hover:bg-purple-50/50 transition-colors"
                       >
-                        <td className="p-4 flex items-center gap-3">
+                        <td className="p-2 flex items-center gap-3">
                           <div className="h-10 w-10 rounded-full border border-gray-200 shadow-sm bg-gray-100 flex items-center justify-center text-gray-400 font-bold">
                             {user.name.charAt(0)}
                           </div>
@@ -407,6 +316,11 @@ const User = () => {
                         <td className="p-4">
                           <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-md text-xs font-medium border border-gray-200">
                             {user.role}
+                          </span>
+                        </td>
+                        <td className="p-4">
+                          <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-md text-xs font-medium border border-gray-200">
+                            {user.hq || "N/A"}
                           </span>
                         </td>
                         <td className="p-4 text-gray-500">
@@ -423,7 +337,13 @@ const User = () => {
                         </td>
                         <td className="p-4 text-center flex items-center justify-center gap-2">
                           <button
-                            onClick={() => fetchSingleUser(user.id)}
+                            onClick={() =>
+                              fetchSingleUser(
+                                user.id,
+                                setSelectedUser,
+                                setIsViewModalOpen
+                              )
+                            }
                             className="p-2 inline-flex items-center justify-center text-blue-600 bg-blue-50 rounded-full hover:bg-blue-600 hover:text-white transition-all duration-300 shadow-sm"
                             title="View User"
                           >
@@ -432,13 +352,17 @@ const User = () => {
 
                           <button
                             onClick={() =>
-                              toggleUserStatus(user.id, Number(user.is_active))
+                              toggleUserStatus(
+                                user.id,
+                                user.is_active,
+                                showToast,
+                                () => fetchUsers(setUsers)
+                              )
                             }
-                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm border flex items-center gap-1 ${
-                              Number(user.is_active) === 1
-                                ? "bg-red-50 text-red-600 border-red-200 hover:bg-red-600 hover:text-white"
-                                : "bg-green-50 text-green-600 border-green-200 hover:bg-green-600 hover:text-white"
-                            }`}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm border flex items-center gap-1 ${Number(user.is_active) === 1
+                              ? "bg-red-50 text-red-600 border-red-200 hover:bg-red-600 hover:text-white"
+                              : "bg-green-50 text-green-600 border-green-200 hover:bg-green-600 hover:text-white"
+                              }`}
                           >
                             {Number(user.is_active) === 1 ? (
                               <>
@@ -449,6 +373,17 @@ const User = () => {
                                 <CheckCircle size={14} /> Active
                               </>
                             )}
+                          </button>
+
+                          <button
+                            onClick={() => {
+                              setSelectedUserId(user.id);
+                              setIsResetModalOpen(true);
+                            }}
+                            className="px-3 py-2 inline-flex items-center justify-center text-blue-600 bg-blue-50 rounded-full hover:bg-blue-600 hover:text-white transition-all duration-300 shadow-sm leading-none"
+                            title="Reset Password"
+                          >
+                            Reset Password
                           </button>
                         </td>
                       </tr>
@@ -493,13 +428,17 @@ const User = () => {
                       </button>
                       <button
                         onClick={() =>
-                          toggleUserStatus(user.id, Number(user.is_active))
+                          toggleUserStatus(
+                            user.id,
+                            user.is_active,
+                            showToast,
+                            () => fetchUsers(setUsers)
+                          )
                         }
-                        className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg font-semibold transition-all duration-300 shadow-sm text-sm border ${
-                          Number(user.is_active) === 1
-                            ? "bg-red-50 text-red-600 border-red-200 hover:bg-red-600 hover:text-white"
-                            : "bg-green-50 text-green-600 border-green-200 hover:bg-green-600 hover:text-white"
-                        }`}
+                        className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg font-semibold transition-all duration-300 shadow-sm text-sm border ${Number(user.is_active) === 1
+                          ? "bg-red-50 text-red-600 border-red-200 hover:bg-red-600 hover:text-white"
+                          : "bg-green-50 text-green-600 border-green-200 hover:bg-green-600 hover:text-white"
+                          }`}
                       >
                         {Number(user.is_active) === 1 ? "Inactive" : "Active"}
                       </button>
@@ -511,7 +450,6 @@ const User = () => {
           )}
         </div>
       </div>
-
       {totalPages > 1 && (
         <div className="bg-white border-t border-gray-200 px-6 py-4 flex items-center justify-between flex-shrink-0 z-10">
           <p className="text-sm text-gray-500 hidden sm:block">
@@ -560,222 +498,36 @@ const User = () => {
           </div>
         </div>
       )}
-      {isViewModalOpen && selectedUser && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-fadeIn">
-            {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b bg-purple-50">
-              <h2 className="text-lg font-bold text-gray-800">User Details</h2>
-              <button
-                onClick={() => setIsViewModalOpen(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X size={20} />
-              </button>
-            </div>
+      {isViewModalOpen && selectedUser &&
 
-            {/* Body */}
-            <div className="p-6 space-y-4 text-sm">
-              {/* Profile */}
-              <div className="flex items-center gap-4">
-                <img
-                  src={selectedUser.profile_image}
-                  alt="profile"
-                  className="w-14 h-14 rounded-full border object-cover"
-                />
-                <div>
-                  <p className="font-bold text-gray-800">{selectedUser.name}</p>
-                  <p className="text-gray-500 text-xs">{selectedUser.email}</p>
-                </div>
-              </div>
-
-          <div className="grid grid-cols-2 gap-4 pt-4 border-t">
-  <div>
-    <p className="text-gray-500 text-xs">User ID</p>
-    <p className="font-semibold text-gray-800">
-      {selectedUser.id}
-    </p>
-  </div>
-
-  <div>
-    <p className="text-gray-500 text-xs">Manager ID</p>
-    <p className="font-semibold text-gray-800">
-      {selectedUser.manager_id || "N/A"}
-    </p>
-  </div>
-
-  <div>
-    <p className="text-gray-500 text-xs">Role</p>
-    <p className="font-semibold text-gray-800">
-      {selectedUser.role}
-    </p>
-  </div>
-
-  <div>
-    <p className="text-gray-500 text-xs">Status</p>
-    <span
-      className={`px-2 py-1 rounded-full text-xs font-bold ${
-        selectedUser.is_active === 1
-          ? "bg-green-100 text-green-700"
-          : "bg-red-100 text-red-700"
-      }`}
-    >
-      {selectedUser.is_active === 1 ? "Active" : "Inactive"}
-    </span>
-  </div>
-
-  <div>
-    <p className="text-gray-500 text-xs">Rate</p>
-    <p className="font-semibold text-gray-800">
-      ₹{selectedUser.per_km_rate}
-    </p>
-  </div>
-
-  <div>
-    <p className="text-gray-500 text-xs">Designation</p>
-    <p className="font-semibold text-gray-800">
-      {selectedUser.designation || "N/A"}
-    </p>
-  </div>
-
-  <div>
-    <p className="text-gray-500 text-xs">Team</p>
-    <p className="font-semibold text-gray-800">
-      {selectedUser.team || "N/A"}
-    </p>
-  </div>
-
-  <div>
-    <p className="text-gray-500 text-xs">State</p>
-    <p className="font-semibold text-gray-800">
-      {selectedUser.state || "N/A"}
-    </p>
-  </div>
-
-  <div>
-    <p className="text-gray-500 text-xs">Created At</p>
-    <p className="font-semibold text-gray-800">
-      {new Date(selectedUser.created_at).toLocaleString()}
-    </p>
-  </div>
-
-  <div>
-    <p className="text-gray-500 text-xs">Updated At</p>
-    <p className="font-semibold text-gray-800">
-      {new Date(selectedUser.updated_at).toLocaleString()}
-    </p>
-  </div>
-</div>
-</div>
-
-            {/* Footer */}
-            <div className="px-6 py-4 border-t">
-              <button
-                onClick={() => setIsViewModalOpen(false)}
-                className="w-full bg-purple-600 text-white py-2 rounded-lg font-medium hover:bg-purple-700 transition"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all">
-            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-purple-50">
-              <h2 className="text-xl font-bold text-gray-800">
-                Create New User
-              </h2>
-              <button
-                onClick={() => setIsModalOpen(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <X size={24} />
-              </button>
-            </div>
-            <form onSubmit={handleCreateUser} className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">
-                  Full Name
-                </label>
-                <input
-                  required
-                  type="text"
-                  placeholder="Enter name"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none transition-all"
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">
-                  Gmail Address
-                </label>
-                <input
-                  required
-                  type="email"
-                  placeholder="example@gmail.com"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none transition-all"
-                  value={formData.email}
-                  onChange={(e) =>
-                    setFormData({ ...formData, email: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">
-                  Password
-                </label>
-                <input
-                  required
-                  type="password"
-                  placeholder="••••••••"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none transition-all"
-                  value={formData.password}
-                  onChange={(e) =>
-                    setFormData({ ...formData, password: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">
-                  Per KM Rate
-                </label>
-                <input
-                  required
-                  type="number"
-                  step="0.01"
-                  placeholder="e.g. 12"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none transition-all"
-                  value={formData.per_km_rate}
-                  onChange={(e) =>
-                    setFormData({ ...formData, per_km_rate: e.target.value })
-                  }
-                />
-              </div>
-              <div className="pt-4 flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-600 rounded-lg font-medium hover:bg-gray-50 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors shadow-md disabled:opacity-50"
-                >
-                  {isSubmitting ? "Creating..." : "Create User"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+        <ViewUserModal
+          isOpen={isViewModalOpen}
+          selectedUser={selectedUser}
+          setIsViewModalOpen={setIsViewModalOpen}
+        />
+      }
+      {isModalOpen &&
+        <CreateUserModal
+          isOpen={isModalOpen}
+          setIsModalOpen={setIsModalOpen}
+          formData={formData}
+          setFormData={setFormData}
+          isSubmitting={isSubmitting}
+          setIsSubmitting={setIsSubmitting}
+          showToast={showToast}
+          setUsers={setUsers}
+        />
+      }
+      {isResetModalOpen &&
+        <ResetPasswordModal
+          isOpen={isResetModalOpen}
+          setIsResetModalOpen={setIsResetModalOpen}
+          resetPassword={resetPassword}
+          setResetPassword={setResetPassword}
+          selectedUserId={selectedUserId}
+          showToast={showToast}
+        />
+      }
     </div>
   );
 };
