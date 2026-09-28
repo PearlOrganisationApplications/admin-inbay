@@ -67,19 +67,20 @@ const latestMarkerIcon = L.divIcon({
   popupAnchor: [0, -17],
 });
 
-function MapUpdater({ tracking }) {
+function MapUpdater({ route }) {
   const map = useMap();
 
   useEffect(() => {
-    if (!tracking) return;
+    if (!route || route.length === 0) return;
 
-    const lat = Number(tracking.latitude);
-    const lng = Number(tracking.longitude);
-
-    if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
-      map.setView([lat, lng], 16);
+    if (route.length === 1) {
+      map.setView(route[0], 16);
+    } else {
+      map.fitBounds(route, {
+        padding: [30, 30],
+      });
     }
-  }, [tracking, map]);
+  }, [route, map]);
 
   return null;
 }
@@ -96,9 +97,8 @@ export default function Dashboard() {
 
   const [userTracking, setUserTracking] = useState(null);
   const [trackingLoading, setTrackingLoading] = useState(false);
-
-  const [selectedTracking, setSelectedTracking] = useState(null);
-
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 20;
   const fetchUserTracking = async (userId) => {
     try {
       setTrackingLoading(true);
@@ -107,29 +107,9 @@ export default function Dashboard() {
       const trackingResponse = response?.data ?? response;
 
       setUserTracking(trackingResponse);
-
-      const trackingData = trackingResponse?.data || [];
-
-      if (trackingData.length > 0) {
-        const sorted = [...trackingData].sort((a, b) => {
-          const dateA = new Date(
-            `${a.tracking_date}T${a.tracking_time}`,
-          ).getTime();
-
-          const dateB = new Date(
-            `${b.tracking_date}T${b.tracking_time}`,
-          ).getTime();
-
-          return dateA - dateB;
-        });
-
-        setSelectedTracking(sorted[sorted.length - 1]);
-      } else {
-        setSelectedTracking(null);
-      }
     } catch (error) {
       console.error("Tracking error:", error);
-      setSelectedTracking(null);
+      setUserTracking(null);
     } finally {
       setTrackingLoading(false);
     }
@@ -154,12 +134,13 @@ export default function Dashboard() {
     }
   };
 
-  const handleUserClick = (userId) => {
-    setId(userId);
+const handleUserClick = (userId) => {
+  setId(userId);
+  setCurrentPage(1);
 
-    fetchUserById(userId);
-    fetchUserTracking(userId);
-  };
+  fetchUserById(userId);
+  fetchUserTracking(userId);
+};
 
   const closeModal = () => {
     setShowModal(false);
@@ -229,16 +210,6 @@ export default function Dashboard() {
       );
   }, [userTracking]);
 
-  const mapCenter =
-    trackingData.length > 0
-      ? [trackingData[0].latitude, trackingData[0].longitude]
-      : [16.2748933, 80.41547];
-
-  const route = trackingData
-    .slice()
-    .reverse()
-    .map((item) => [item.latitude, item.longitude]);
-
   const sortedTrackingData = useMemo(() => {
     return [...trackingData].sort((a, b) => {
       const dateA = new Date(`${a.tracking_date}T${a.tracking_time}`).getTime();
@@ -249,11 +220,21 @@ export default function Dashboard() {
     });
   }, [trackingData]);
 
+  const route = sortedTrackingData.map((item) => [
+    item.latitude,
+    item.longitude,
+  ]);
+
   const latestLocation =
     sortedTrackingData.length > 0
       ? sortedTrackingData[sortedTrackingData.length - 1]
       : null;
+  const totalPages = Math.ceil(sortedTrackingData.length / ITEMS_PER_PAGE);
 
+  const paginatedTrackingData = sortedTrackingData.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE,
+  );
   return (
     <>
       <div className="space-y-6">
@@ -558,87 +539,91 @@ export default function Dashboard() {
                         )}
 
                         <div className="w-full h-[500px] rounded-xl overflow-hidden">
-                          {selectedTracking ? (
-                            <MapContainer
-                              center={[
-                                Number(selectedTracking.latitude),
-                                Number(selectedTracking.longitude),
-                              ]}
-                              zoom={16}
-                              scrollWheelZoom={true}
-                              className="w-full h-full"
-                            >
-                              <MapUpdater tracking={selectedTracking} />
+                          <MapContainer
+                            center={route[0]}
+                            zoom={16}
+                            scrollWheelZoom={true}
+                            className="w-full h-full"
+                          >
+                            <MapUpdater route={route} />
 
-                              <TileLayer
-                                attribution="&copy; OpenStreetMap contributors"
-                                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                              />
+                            <TileLayer
+                              attribution="&copy; OpenStreetMap contributors"
+                              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                            />
+
+                            <Polyline
+                              positions={route}
+                              pathOptions={{
+                                color: "#7c3aed",
+                                weight: 4,
+                                opacity: 0.8,
+                              }}
+                            />
+
+                    {paginatedTrackingData.map(
+  (tracking, index) => (
 
                               <Marker
+                                key={tracking.id || index}
                                 position={[
-                                  Number(selectedTracking.latitude),
-                                  Number(selectedTracking.longitude),
+                                  tracking.latitude,
+                                  tracking.longitude,
                                 ]}
-                                icon={latestMarkerIcon}
+                                icon={
+                                  index === sortedTrackingData.length - 1
+                                    ? latestMarkerIcon
+                                    : markerIcon
+                                }
                               >
                                 <Popup>
-                                  <div className="min-w-[220px]">
-                                    <h3 className="font-semibold text-lg mb-2">
-                                      Selected Location
+                                  <div className="min-w-[200px]">
+                                    <h3 className="font-semibold text-base mb-2">
+                                      Point #{index + 1}
                                     </h3>
 
                                     <p>
                                       <strong>Date:</strong>{" "}
-                                      {selectedTracking.tracking_date}
+                                      {tracking.tracking_date}
                                     </p>
 
                                     <p>
                                       <strong>Time:</strong>{" "}
-                                      {selectedTracking.tracking_time}
+                                      {tracking.tracking_time}
                                     </p>
 
                                     <p>
                                       <strong>Address:</strong>{" "}
-                                      {selectedTracking.address || "N/A"}
+                                      {tracking.address || "N/A"}
                                     </p>
 
                                     <p>
                                       <strong>Latitude:</strong>{" "}
-                                      {selectedTracking.latitude}
+                                      {tracking.latitude}
                                     </p>
 
                                     <p>
                                       <strong>Longitude:</strong>{" "}
-                                      {selectedTracking.longitude}
+                                      {tracking.longitude}
                                     </p>
                                   </div>
                                 </Popup>
                               </Marker>
-                            </MapContainer>
-                          ) : (
-                            <div className="h-full flex items-center justify-center bg-gray-100">
-                              <p className="text-gray-500">
-                                No tracking location available
-                              </p>
-                            </div>
-                          )}
+                            ))}
+                          </MapContainer>
                         </div>
+
                         <div className="mt-4">
                           <h4 className="text-sm font-semibold text-gray-700 mb-3">
                             Tracking History
                           </h4>
 
                           <div className="max-h-[300px] overflow-y-auto space-y-2">
-                            {sortedTrackingData.map((tracking, index) => (
+                       {paginatedTrackingData.map(
+  (tracking, index) => (
                               <div
                                 key={tracking.id || index}
-                                onClick={() => setSelectedTracking(tracking)}
-                                className={`rounded-lg p-3 cursor-pointer transition border ${
-                                  selectedTracking?.id === tracking.id
-                                    ? "bg-purple-50 border-purple-400"
-                                    : "bg-gray-50 border-transparent hover:bg-gray-100"
-                                }`}
+                                className="rounded-lg p-3 transition border bg-gray-50 border-transparent"
                               >
                                 <div className="flex items-center justify-between">
                                   <p className="text-xs font-semibold text-gray-700">
@@ -661,7 +646,36 @@ export default function Dashboard() {
                               </div>
                             ))}
                           </div>
+                           <div className="flex items-center justify-between mt-4">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setCurrentPage((prev) => Math.max(prev - 1, 1))
+                            }
+                            disabled={currentPage === 1}
+className="px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-800 text-white border border-gray-800 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-900"                          >
+                            Previous
+                          </button>
+
+                          <span className="text-xs text-gray-500">
+                            Page {currentPage} of {totalPages}
+                          </span>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setCurrentPage((prev) =>
+                                Math.min(prev + 1, totalPages),
+                              )
+                            }
+                            disabled={currentPage === totalPages}
+                            className="px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-900 text-white-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-600"
+                          >
+                            Next
+                          </button>
                         </div>
+                        </div>
+                       
                       </>
                     ) : (
                       <div className="bg-gray-50 rounded-xl p-6 text-center">
