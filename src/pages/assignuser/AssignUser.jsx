@@ -56,37 +56,76 @@ const AssignUser = () => {
     }
   };
 
-  const handleAssign = async () => {
-    if (!selectedManager || !selectedUser) return;
+  // const handleAssign = async () => {
+  //   if (!selectedManager || !selectedUser) return;
 
-    setAssigning(true);
-    try {
-      const response = await fetch(`${BASE_URL}/assign-user-to-manager`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${TOKEN}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          manager_id: selectedManager.id,
-          user_id: selectedUser.id,
-        }),
-      });
+  //   setAssigning(true);
+  //   try {
+  //     const response = await fetch(`${BASE_URL}/assign-user-to-manager`, {
+  //       method: "POST",
+  //       headers: {
+  //         "Authorization": `Bearer ${TOKEN}`,
+  //         "Content-Type": "application/json",
+  //       },
+  //       body: JSON.stringify({
+  //         manager_id: selectedManager.id,
+  //         user_id: selectedUser.id,
+  //       }),
+  //     });
 
-      const result = await response.json();
-      alert(result.message || "Assigned Successfully!");
+  //     const result = await response.json();
+  //     alert(result.message || "Assigned Successfully!");
       
-      // Reset Selection
-      setSelectedUser(null);
-      // Optional: Refresh data to show updated manager_id in user list
-      fetchData();
-    } catch (error) {
-      alert("Assignment failed!");
-    } finally {
-      setAssigning(false);
-    }
-  };
+  //     // Reset Selection
+  //     setSelectedUser(null);
+  //     // Optional: Refresh data to show updated manager_id in user list
+  //     fetchData();
+  //   } catch (error) {
+  //     alert("Assignment failed!");
+  //   } finally {
+  //     setAssigning(false);
+  //   }
+  // };
+const handleAssign = async () => {
+  if (!selectedManager || !selectedUser) return;
 
+  setAssigning(true);
+  try {
+    const response = await fetch(`${BASE_URL}/assign-user-to-manager`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${TOKEN}`,
+        "Content-Type": "application/json",
+        "Accept": "application/json",          // ← added
+      },
+      body: JSON.stringify({
+        manager_id: selectedManager.id,
+        user_ids: [selectedUser.id],           // ← array, plural key
+      }),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      // Shows real Laravel validation/auth errors instead of a vague message
+      const details = result.errors
+        ? Object.values(result.errors).flat().join("\n")
+        : result.message;
+      alert(details || "Assignment failed!");
+      return;
+    }
+
+    alert(result.message || "Assigned Successfully!");
+
+    setSelectedUser(null);
+    fetchData();
+  } catch (error) {
+    console.error(error);
+    alert("Assignment failed!");
+  } finally {
+    setAssigning(false);
+  }
+};
   // Filter users based on search
   const filteredUsers = users.filter(user => 
     user.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
