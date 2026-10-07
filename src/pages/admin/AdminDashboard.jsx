@@ -5,9 +5,12 @@ import {
   FaClock,
   FaUserTimes,
   FaTimes,
-  FaMapMarkerAlt,
 } from "react-icons/fa";
-
+import DatePicker from "react-datepicker";
+import { createPortal } from "react-dom";
+import * as XLSX from "xlsx";
+const CalendarPortal = ({ children }) => createPortal(children, document.body);
+import "react-datepicker/dist/react-datepicker.css";
 import {
   MapContainer,
   TileLayer,
@@ -40,7 +43,7 @@ const markerIcon = L.icon({
   shadowSize: [41, 41],
 });
 
-const latestMarkerIcon = L.divIcon({
+const endMarkerIcon = L.divIcon({
   className: "",
   html: `
     <div style="
@@ -53,13 +56,11 @@ const latestMarkerIcon = L.divIcon({
       display: flex;
       align-items: center;
       justify-content: center;
+      color: white;
+      font-size: 16px;
+      font-weight: bold;
     ">
-      <div style="
-        width: 10px;
-        height: 10px;
-        background: white;
-        border-radius: 50%;
-      "></div>
+      E
     </div>
   `,
   iconSize: [34, 34],
@@ -67,6 +68,107 @@ const latestMarkerIcon = L.divIcon({
   popupAnchor: [0, -17],
 });
 
+const startMarkerIcon = L.divIcon({
+  className: "",
+  html: `
+    <div style="
+      width: 36px;
+      height: 36px;
+      background: #16a34a;
+      border: 3px solid white;
+      border-radius: 50%;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 15px;
+      font-weight: 700;
+    ">S</div>
+  `,
+  iconSize: [36, 36],
+  iconAnchor: [18, 18],
+  popupAnchor: [0, -18],
+});
+
+const customerVisitIcon = L.divIcon({
+  className: "",
+  html: `
+    <div style="
+      width: 36px;
+      height: 36px;
+      background: #2563eb;
+      border: 3px solid white;
+      border-radius: 50%;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 14px;
+      font-weight: 700;
+    ">V</div>
+  `,
+  iconSize: [36, 36],
+  iconAnchor: [18, 18],
+  popupAnchor: [0, -18],
+});
+
+const checkInMarkerIcon = L.divIcon({
+  className: "",
+  html: `
+    <div style="
+      width: 36px;
+      height: 36px;
+      background: #f59e0b;
+      border: 3px solid white;
+      border-radius: 50%;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 14px;
+      font-weight: 700;
+    ">C</div>
+  `,
+  iconSize: [36, 36],
+  iconAnchor: [18, 18],
+  popupAnchor: [0, -18],
+});
+
+// Keeps only the first entry for each user id
+const uniqueUsers = (list = []) => {
+  const map = new Map();
+  list.forEach((u) => {
+    if (!map.has(u.id)) map.set(u.id, u);
+  });
+  return [...map.values()];
+};
+const toDateObj = (str) => {
+  const [y, m, d] = str.split("-").map(Number);
+  return new Date(y, m - 1, d);
+};
+
+const toDateStr = (date) => date.toLocaleDateString("en-CA");
+const toRad = (deg) => (deg * Math.PI) / 180;
+
+const distanceKm = (a, b) => {
+  const R = 6371;
+  const dLat = toRad(b.latitude - a.latitude);
+  const dLon = toRad(b.longitude - a.longitude);
+  const x =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(a.latitude)) *
+      Math.cos(toRad(b.latitude)) *
+      Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(x));
+};
+
+const toSeconds = (t) => {
+  const [h = 0, m = 0, s = 0] = String(t).split(":").map(Number);
+  return h * 3600 + m * 60 + s;
+};
 function MapUpdater({ route }) {
   const map = useMap();
 
@@ -94,11 +196,12 @@ export default function Dashboard() {
 
   const [showModal, setShowModal] = useState(false);
   const [userLoading, setUserLoading] = useState(false);
-
   const [userTracking, setUserTracking] = useState(null);
   const [trackingLoading, setTrackingLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedDate, setSelectedDate] = useState("");
   const ITEMS_PER_PAGE = 20;
+
   const fetchUserTracking = async (userId) => {
     try {
       setTrackingLoading(true);
@@ -134,19 +237,22 @@ export default function Dashboard() {
     }
   };
 
-const handleUserClick = (userId) => {
-  setId(userId);
-  setCurrentPage(1);
+  const handleUserClick = (userId) => {
+    setId(userId);
+    setSelectedDate("");
+    setCurrentPage(1);
 
-  fetchUserById(userId);
-  fetchUserTracking(userId);
-};
+    fetchUserById(userId);
+    fetchUserTracking(userId);
+  };
 
   const closeModal = () => {
     setShowModal(false);
     setUser(null);
     setUserTracking(null);
     setId(null);
+    setSelectedDate("");
+    setCurrentPage(1);
   };
 
   useEffect(() => {
@@ -171,6 +277,11 @@ const handleUserClick = (userId) => {
     fetchAttendance();
   }, []);
 
+  /* ================= UNIQUE USER LISTS ================= */
+  const presentUsers = useMemo(() => uniqueUsers(data?.present_users), [data]);
+  const lateUsers = useMemo(() => uniqueUsers(data?.late_users), [data]);
+  const absentUsers = useMemo(() => uniqueUsers(data?.absent_users), [data]);
+
   const stats = [
     {
       title: "Total Users",
@@ -194,6 +305,7 @@ const handleUserClick = (userId) => {
     },
   ];
 
+  /* ================= TRACKING DATA ================= */
   const trackingData = useMemo(() => {
     if (!userTracking?.data) {
       return [];
@@ -213,28 +325,266 @@ const handleUserClick = (userId) => {
   const sortedTrackingData = useMemo(() => {
     return [...trackingData].sort((a, b) => {
       const dateA = new Date(`${a.tracking_date}T${a.tracking_time}`).getTime();
-
       const dateB = new Date(`${b.tracking_date}T${b.tracking_time}`).getTime();
 
       return dateA - dateB;
     });
   }, [trackingData]);
 
-  const route = sortedTrackingData.map((item) => [
-    item.latitude,
-    item.longitude,
+  const availableDates = useMemo(() => {
+    return [...new Set(sortedTrackingData.map((item) => item.tracking_date))]
+      .filter(Boolean)
+      .sort((a, b) => new Date(b) - new Date(a));
+  }, [sortedTrackingData]);
+  const availableDateObjects = useMemo(
+    () => availableDates.map(toDateObj),
+    [availableDates],
+  );
+
+  // availableDates newest first hai: index+1 = purani date, index-1 = nayi date
+  const selectedIndex = availableDates.indexOf(selectedDate);
+  const olderDate = availableDates[selectedIndex + 1];
+  const newerDate = availableDates[selectedIndex - 1];
+  useEffect(() => {
+    if (availableDates.length === 0) {
+      setSelectedDate("");
+      return;
+    }
+
+    if (!selectedDate || !availableDates.includes(selectedDate)) {
+      setSelectedDate(availableDates[0]);
+      setCurrentPage(1);
+    }
+  }, [availableDates, selectedDate]);
+
+  // Step 1: selected day's points, duplicates removed
+  const dayTrackingData = useMemo(() => {
+    if (!selectedDate) return [];
+
+    const seen = new Set();
+
+    return sortedTrackingData
+      .filter((item) => item.tracking_date === selectedDate)
+      .filter((item) => {
+        // same time + same location = duplicate point
+        const key = `${item.tracking_time}-${item.latitude}-${item.longitude}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+  }, [sortedTrackingData, selectedDate]);
+
+  // Step 2: GPS jump filter (unrealistic speed = noise)
+  const cleanDayTrackingData = useMemo(() => {
+    const MAX_SPEED_KMH = 150;
+
+    const result = [];
+
+    dayTrackingData.forEach((point) => {
+      const last = result[result.length - 1];
+
+      if (!last) {
+        result.push(point);
+        return;
+      }
+
+      const seconds =
+        toSeconds(point.tracking_time) - toSeconds(last.tracking_time);
+
+      if (seconds <= 0) {
+        result.push(point);
+        return;
+      }
+
+      const speed = distanceKm(last, point) / (seconds / 3600);
+
+      // Very high speed = GPS jump, skip
+      if (speed <= MAX_SPEED_KMH) {
+        result.push(point);
+      }
+    });
+
+    return result;
+  }, [dayTrackingData]);
+
+  const dayStartPoint = cleanDayTrackingData[0] ?? null;
+  const dayEndPoint =
+    cleanDayTrackingData[cleanDayTrackingData.length - 1] ?? null;
+
+  const customerVisits = useMemo(() => {
+    const isTruthy = (value) =>
+      value === true ||
+      value === 1 ||
+      ["true", "1", "yes"].includes(
+        String(value ?? "")
+          .trim()
+          .toLowerCase(),
+      );
+
+    return cleanDayTrackingData.filter((item) => {
+      const explicitVisit =
+        item.customer_visit ??
+        item.is_customer_visit ??
+        item.isCustomerVisit ??
+        item.customerVisit ??
+        item.visit;
+
+      if (isTruthy(explicitVisit)) return true;
+
+      const visitType = String(
+        item.visit_type ??
+          item.point_type ??
+          item.location_type ??
+          item.tracking_type ??
+          "",
+      )
+        .trim()
+        .toLowerCase()
+        .replace(/[_-]/g, " ");
+
+      return [
+        "customer visit",
+        "customer",
+        "visit",
+        "check in",
+        "checkin",
+      ].includes(visitType);
+    });
+  }, [cleanDayTrackingData]);
+  const totalDistanceKm = useMemo(() => {
+    let total = 0;
+    for (let i = 1; i < cleanDayTrackingData.length; i++) {
+      total += distanceKm(cleanDayTrackingData[i - 1], cleanDayTrackingData[i]);
+    }
+    return total;
+  }, [cleanDayTrackingData]);
+  const normalizeTime = (value) => {
+    if (!value) return "";
+
+    const raw = String(value).trim().toLowerCase();
+
+    const ampmMatch = raw.match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*(am|pm)$/);
+
+    if (ampmMatch) {
+      let hour = Number(ampmMatch[1]);
+      const minute = ampmMatch[2];
+
+      if (ampmMatch[3] === "pm" && hour !== 12) hour += 12;
+      if (ampmMatch[3] === "am" && hour === 12) hour = 0;
+
+      return `${String(hour).padStart(2, "0")}:${minute}`;
+    }
+
+    const twentyFourHourMatch = raw.match(/^(\d{1,2}):(\d{2})/);
+
+    if (twentyFourHourMatch) {
+      return `${String(Number(twentyFourHourMatch[1])).padStart(2, "0")}:${twentyFourHourMatch[2]}`;
+    }
+
+    return raw;
+  };
+
+  const attendanceCheckInPoints = useMemo(() => {
+    const checkInTime = normalizeTime(user?.check_in_time);
+    if (!checkInTime) return [];
+
+    // attendance_time format: "2026-10-01 07:53:32"
+    const attendanceDate = user?.attendance_time?.split(" ")[0];
+
+    // Show check-in only on the date it belongs to
+    if (!attendanceDate || attendanceDate !== selectedDate) return [];
+
+    return cleanDayTrackingData.filter(
+      (item) => normalizeTime(item.tracking_time) === checkInTime,
+    );
+  }, [
+    cleanDayTrackingData,
+    user?.check_in_time,
+    user?.attendance_time,
+    selectedDate,
   ]);
 
-  const latestLocation =
-    sortedTrackingData.length > 0
-      ? sortedTrackingData[sortedTrackingData.length - 1]
-      : null;
-  const totalPages = Math.ceil(sortedTrackingData.length / ITEMS_PER_PAGE);
+  const route = useMemo(
+    () => cleanDayTrackingData.map((item) => [item.latitude, item.longitude]),
+    [cleanDayTrackingData],
+  );
 
-  const paginatedTrackingData = sortedTrackingData.slice(
+  const totalPages = Math.max(
+    1,
+    Math.ceil(cleanDayTrackingData.length / ITEMS_PER_PAGE),
+  );
+
+  const paginatedTrackingData = cleanDayTrackingData.slice(
     (currentPage - 1) * ITEMS_PER_PAGE,
     currentPage * ITEMS_PER_PAGE,
   );
+
+  const todayDate = new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD
+  const isTodaySelected = selectedDate === todayDate;
+  const handleDownloadExcel = () => {
+    if (!cleanDayTrackingData.length) return;
+
+    const visitSet = new Set(customerVisits);
+    const checkInSet = new Set(attendanceCheckInPoints);
+    const lastIndex = cleanDayTrackingData.length - 1;
+
+    const rows = cleanDayTrackingData.map((p, i) => {
+      const types = [];
+      if (i === 0) types.push("Day Start");
+      if (i === lastIndex && lastIndex !== 0) types.push("Day End");
+      if (visitSet.has(p)) types.push("Customer Visit");
+      if (checkInSet.has(p)) types.push("Attendance Check-in");
+      if (!types.length) types.push("GPS Point");
+
+      return {
+        "Point #": i + 1,
+        Date: p.tracking_date,
+        Time: p.tracking_time,
+        Latitude: p.latitude,
+        Longitude: p.longitude,
+        Address: p.address || "N/A",
+        "Point Type": types.join(" + "),
+      };
+    });
+
+    const summary = [
+      ["Employee", user?.name || "N/A"],
+      ["Email", user?.email || "N/A"],
+      ["Report Date", selectedDate],
+      [
+        "Day Start",
+        `${dayStartPoint?.tracking_time || "N/A"} - ${dayStartPoint?.address || "N/A"}`,
+      ],
+      [
+        "Day End",
+        `${dayEndPoint?.tracking_time || "N/A"} - ${dayEndPoint?.address || "N/A"}`,
+      ],
+      ["Total Distance (KM)", Number(totalDistanceKm.toFixed(2))],
+      ["Customer Visits", customerVisits.length],
+      ["Total GPS Points", cleanDayTrackingData.length],
+    ];
+
+    const wsSummary = XLSX.utils.aoa_to_sheet(summary);
+    wsSummary["!cols"] = [{ wch: 22 }, { wch: 70 }];
+
+    const wsPoints = XLSX.utils.json_to_sheet(rows);
+    wsPoints["!cols"] = [
+      { wch: 8 },
+      { wch: 12 },
+      { wch: 10 },
+      { wch: 12 },
+      { wch: 12 },
+      { wch: 60 },
+      { wch: 28 },
+    ];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, wsSummary, "Summary");
+    XLSX.utils.book_append_sheet(wb, wsPoints, "Checkpoints");
+
+    const safeName = (user?.name || "user").replace(/[^a-z0-9]+/gi, "_");
+    XLSX.writeFile(wb, `${safeName}_tracking_${selectedDate}.xlsx`);
+  };
   return (
     <>
       <div className="space-y-6">
@@ -284,29 +634,29 @@ const handleUserClick = (userId) => {
             </div>
 
             <ul className="space-y-3 max-h-[420px] overflow-y-auto pr-2">
-              {data?.present_users?.length > 0 ? (
-                data.present_users.map((user) => (
+              {presentUsers.length > 0 ? (
+                presentUsers.map((u) => (
                   <li
-                    key={user.id}
-                    onClick={() => handleUserClick(user.id)}
+                    key={u.id}
+                    onClick={() => handleUserClick(u.id)}
                     className="flex items-center justify-between border-b pb-3 last:border-b-0 cursor-pointer hover:bg-gray-50 rounded-lg p-2 transition"
                   >
                     <div className="flex items-center gap-3">
                       <div className="h-10 w-10 rounded-full bg-purple-100 overflow-hidden flex items-center justify-center">
                         <span className="text-sm font-semibold text-purple-600">
-                          {user.name?.charAt(0)?.toUpperCase()}
+                          {u.name?.charAt(0)?.toUpperCase()}
                         </span>
                       </div>
 
                       <div>
                         <p className="text-sm font-medium text-gray-800">
-                          {user.name}
+                          {u.name}
                         </p>
 
-                        <p className="text-xs text-gray-400">{user.email}</p>
+                        <p className="text-xs text-gray-400">{u.email}</p>
 
                         <p className="text-xs text-gray-400">
-                          Check In: {user.check_in_time}
+                          Check In: {u.check_in_time}
                         </p>
                       </div>
                     </div>
@@ -328,28 +678,28 @@ const handleUserClick = (userId) => {
             </h2>
 
             <ul className="space-y-3 max-h-[420px] overflow-y-auto pr-2">
-              {data?.late_users?.map((user) => (
+              {lateUsers.map((u) => (
                 <li
-                  key={`late-${user.id}`}
-                  onClick={() => handleUserClick(user.id)}
+                  key={`late-${u.id}`}
+                  onClick={() => handleUserClick(u.id)}
                   className="flex items-center justify-between border-b pb-3 last:border-b-0 cursor-pointer hover:bg-gray-50 rounded-lg p-2 transition"
                 >
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-full bg-yellow-100 overflow-hidden flex items-center justify-center">
                       <span className="text-sm font-semibold text-yellow-600">
-                        {user.name?.charAt(0)?.toUpperCase()}
+                        {u.name?.charAt(0)?.toUpperCase()}
                       </span>
                     </div>
 
                     <div>
                       <p className="text-sm font-medium text-gray-800">
-                        {user.name}
+                        {u.name}
                       </p>
 
-                      <p className="text-xs text-gray-400">{user.email}</p>
+                      <p className="text-xs text-gray-400">{u.email}</p>
 
                       <p className="text-xs text-gray-400">
-                        Check In: {user.check_in_time}
+                        Check In: {u.check_in_time}
                       </p>
                     </div>
                   </div>
@@ -360,25 +710,25 @@ const handleUserClick = (userId) => {
                 </li>
               ))}
 
-              {data?.absent_users?.map((user) => (
+              {absentUsers.map((u) => (
                 <li
-                  key={`absent-${user.id}`}
-                  onClick={() => handleUserClick(user.id)}
+                  key={`absent-${u.id}`}
+                  onClick={() => handleUserClick(u.id)}
                   className="flex items-center justify-between border-b pb-3 last:border-b-0 cursor-pointer hover:bg-gray-50 rounded-lg p-2 transition"
                 >
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center">
                       <span className="text-sm font-semibold text-red-600">
-                        {user.name?.charAt(0)?.toUpperCase()}
+                        {u.name?.charAt(0)?.toUpperCase()}
                       </span>
                     </div>
 
                     <div>
                       <p className="text-sm font-medium text-gray-800">
-                        {user.name}
+                        {u.name}
                       </p>
 
-                      <p className="text-xs text-gray-400">{user.email}</p>
+                      <p className="text-xs text-gray-400">{u.email}</p>
 
                       <p className="text-xs text-red-400">No check-in today</p>
                     </div>
@@ -390,7 +740,7 @@ const handleUserClick = (userId) => {
                 </li>
               ))}
 
-              {!data?.late_users?.length && !data?.absent_users?.length && (
+              {!lateUsers.length && !absentUsers.length && (
                 <p className="text-sm text-gray-400">No Late or Absent Users</p>
               )}
             </ul>
@@ -459,13 +809,63 @@ const handleUserClick = (userId) => {
                         </h3>
 
                         <p className="text-xs text-gray-400 mt-1">
-                          Complete user location history
+                          Day-wise GPS route, travel points and visit locations
                         </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <label className="text-xs font-medium text-gray-500">
+                          Report Date
+                        </label>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedDate(olderDate);
+                            setCurrentPage(1);
+                          }}
+                          disabled={!olderDate}
+                          className="px-2 py-2 text-xs rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                          title="Previous day"
+                        >
+                          ◀
+                        </button>
+
+                        <DatePicker
+                          selected={
+                            selectedDate ? toDateObj(selectedDate) : null
+                          }
+                          onChange={(date) => {
+                            if (!date) return;
+                            setSelectedDate(toDateStr(date));
+                            setCurrentPage(1);
+                          }}
+                          includeDates={availableDateObjects}
+                          highlightDates={availableDateObjects}
+                          dateFormat="yyyy-MM-dd"
+                          placeholderText="No dates"
+                          disabled={availableDates.length === 0}
+                          popperContainer={CalendarPortal}
+                          popperPlacement="bottom-start"
+                          fixedHeight // 👈 NEW: hamesha 6 rows, calendar complete dikhega
+                          className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white text-gray-700 w-40 text-center focus:outline-none focus:ring-2 focus:ring-purple-200"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedDate(newerDate);
+                            setCurrentPage(1);
+                          }}
+                          disabled={!newerDate}
+                          className="px-2 py-2 text-xs rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                          title="Next day"
+                        >
+                          ▶
+                        </button>
                       </div>
 
                       {!trackingLoading && (
                         <span className="text-xs font-medium bg-purple-100 text-purple-600 px-3 py-1 rounded-full">
-                          {userTracking?.total_tracking_points ?? 0} Points
+                          {cleanDayTrackingData.length} Points
                         </span>
                       )}
                     </div>
@@ -478,67 +878,81 @@ const handleUserClick = (userId) => {
                           Loading tracking data...
                         </p>
                       </div>
-                    ) : trackingData.length > 0 ? (
+                    ) : cleanDayTrackingData.length > 0 ? (
                       <>
-                        {latestLocation && (
-                          <div className="bg-purple-50 border border-purple-100 rounded-xl p-4 mb-4">
-                            <div className="flex items-center gap-2 mb-2">
-                              <FaMapMarkerAlt className="text-red-500" />
-
-                              <h4 className="text-sm font-semibold text-purple-700">
-                                Latest Location
-                              </h4>
-                            </div>
-
-                            <p className="text-sm font-medium text-gray-800">
-                              {latestLocation.address || "Location unavailable"}
+                        {/* ================= DAILY REPORT SUMMARY ================= */}
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
+                          <div className="rounded-xl border border-green-100 bg-green-50 p-4">
+                            <p className="text-[11px] font-medium text-green-600">
+                              Day Start
                             </p>
-
-                            <div className="flex flex-wrap gap-3 mt-3">
-                              <div className="bg-white rounded-lg px-3 py-2">
-                                <p className="text-[10px] text-gray-400">
-                                  Date
-                                </p>
-
-                                <p className="text-xs font-medium text-gray-700">
-                                  {latestLocation.tracking_date}
-                                </p>
-                              </div>
-
-                              <div className="bg-white rounded-lg px-3 py-2">
-                                <p className="text-[10px] text-gray-400">
-                                  Time
-                                </p>
-
-                                <p className="text-xs font-medium text-gray-700">
-                                  {latestLocation.tracking_time}
-                                </p>
-                              </div>
-
-                              <div className="bg-white rounded-lg px-3 py-2">
-                                <p className="text-[10px] text-gray-400">
-                                  Latitude
-                                </p>
-
-                                <p className="text-xs font-medium text-gray-700">
-                                  {latestLocation.latitude}
-                                </p>
-                              </div>
-
-                              <div className="bg-white rounded-lg px-3 py-2">
-                                <p className="text-[10px] text-gray-400">
-                                  Longitude
-                                </p>
-
-                                <p className="text-xs font-medium text-gray-700">
-                                  {latestLocation.longitude}
-                                </p>
-                              </div>
-                            </div>
+                            <p className="text-sm font-semibold text-gray-800 mt-1">
+                              {dayStartPoint?.tracking_time || "N/A"}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+                              {dayStartPoint?.address || "Location unavailable"}
+                            </p>
                           </div>
-                        )}
 
-                        <div className="w-full h-[500px] rounded-xl overflow-hidden">
+                          <div className="rounded-xl border border-red-100 bg-red-50 p-4">
+                            <p className="text-[11px] font-medium text-red-600">
+                              Day End
+                            </p>
+                            <p className="text-sm font-semibold text-gray-800 mt-1">
+                              {dayEndPoint?.tracking_time || "N/A"}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+                              {dayEndPoint?.address || "Location unavailable"}
+                            </p>
+                          </div>
+
+                          <div className="rounded-xl border border-blue-100 bg-blue-50 p-4">
+                            <p className="text-[11px] font-medium text-blue-600">
+                              Total Distance
+                            </p>
+                            <p className="text-2xl font-bold text-gray-800 mt-1">
+                              {totalDistanceKm.toFixed(2)} KM
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              Travelled on {selectedDate}
+                            </p>
+                          </div>
+
+                          <div className="rounded-xl border border-indigo-100 bg-indigo-50 p-4">
+                            <p className="text-[11px] font-medium text-indigo-600">
+                              Customer Visits
+                            </p>
+                            <p className="text-2xl font-bold text-gray-800 mt-1">
+                              {customerVisits.length}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              Visit points highlighted on map
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-4 mb-3 text-xs text-gray-500">
+                          <span className="flex items-center gap-1.5">
+                            <span className="w-3 h-3 rounded-full bg-green-600 border border-white shadow" />
+                            Day Start
+                          </span>
+                          <span className="flex items-center gap-1.5">
+                            <span className="w-3 h-3 rounded-full bg-red-500 border border-white shadow" />
+                            Day End
+                          </span>
+                          <span className="flex items-center gap-1.5">
+                            <span className="w-3 h-3 rounded-full bg-blue-600 border border-white shadow" />
+                            Customer Visit
+                          </span>
+                          {attendanceCheckInPoints.length > 0 && (
+                            <span className="flex items-center gap-1.5">
+                              <span className="w-3 h-3 rounded-full bg-amber-500 border border-white shadow" />
+                              Attendance Check-in
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="relative z-0 w-full h-[500px] rounded-xl overflow-hidden">
                           <MapContainer
                             center={route[0]}
                             zoom={16}
@@ -561,121 +975,192 @@ const handleUserClick = (userId) => {
                               }}
                             />
 
-                    {paginatedTrackingData.map(
-  (tracking, index) => (
-
+                            {/* DAY START POINT */}
+                            {dayStartPoint && (
                               <Marker
-                                key={tracking.id || index}
                                 position={[
-                                  tracking.latitude,
-                                  tracking.longitude,
+                                  dayStartPoint.latitude,
+                                  dayStartPoint.longitude,
                                 ]}
-                                icon={
-                                  index === sortedTrackingData.length - 1
-                                    ? latestMarkerIcon
-                                    : markerIcon
-                                }
+                                icon={startMarkerIcon}
                               >
                                 <Popup>
-                                  <div className="min-w-[200px]">
-                                    <h3 className="font-semibold text-base mb-2">
-                                      Point #{index + 1}
+                                  <div className="min-w-[210px]">
+                                    <h3 className="font-semibold text-base mb-2 text-green-600">
+                                      Day Start Point
                                     </h3>
-
                                     <p>
                                       <strong>Date:</strong>{" "}
-                                      {tracking.tracking_date}
+                                      {dayStartPoint.tracking_date}
                                     </p>
-
                                     <p>
                                       <strong>Time:</strong>{" "}
-                                      {tracking.tracking_time}
+                                      {dayStartPoint.tracking_time}
                                     </p>
-
                                     <p>
                                       <strong>Address:</strong>{" "}
-                                      {tracking.address || "N/A"}
+                                      {dayStartPoint.address || "N/A"}
                                     </p>
-
                                     <p>
                                       <strong>Latitude:</strong>{" "}
-                                      {tracking.latitude}
+                                      {dayStartPoint.latitude}
                                     </p>
-
                                     <p>
                                       <strong>Longitude:</strong>{" "}
-                                      {tracking.longitude}
+                                      {dayStartPoint.longitude}
+                                    </p>
+                                  </div>
+                                </Popup>
+                              </Marker>
+                            )}
+
+                            {/* DAY END POINT */}
+                            {dayEndPoint && (
+                              <Marker
+                                position={[
+                                  dayEndPoint.latitude,
+                                  dayEndPoint.longitude,
+                                ]}
+                                icon={endMarkerIcon}
+                              >
+                                <Popup>
+                                  <div className="min-w-[210px]">
+                                    <h3 className="font-semibold text-base mb-2 text-red-600">
+                                      Day End Point
+                                    </h3>
+                                    <p>
+                                      <strong>Date:</strong>{" "}
+                                      {dayEndPoint.tracking_date}
+                                    </p>
+                                    <p>
+                                      <strong>Time:</strong>{" "}
+                                      {dayEndPoint.tracking_time}
+                                    </p>
+                                    <p>
+                                      <strong>Address:</strong>{" "}
+                                      {dayEndPoint.address || "N/A"}
+                                    </p>
+                                    <p>
+                                      <strong>Latitude:</strong>{" "}
+                                      {dayEndPoint.latitude}
+                                    </p>
+                                    <p>
+                                      <strong>Longitude:</strong>{" "}
+                                      {dayEndPoint.longitude}
+                                    </p>
+                                  </div>
+                                </Popup>
+                              </Marker>
+                            )}
+
+                            {/* CUSTOMER VISIT POINTS */}
+                            {customerVisits.map((visit, visitIndex) => (
+                              <Marker
+                                key={`customer-visit-${visit.id || visitIndex}`}
+                                position={[visit.latitude, visit.longitude]}
+                                icon={customerVisitIcon}
+                              >
+                                <Popup>
+                                  <div className="min-w-[210px]">
+                                    <h3 className="font-semibold text-base mb-2 text-blue-600">
+                                      Customer Visit
+                                    </h3>
+                                    <p>
+                                      <strong>Date:</strong>{" "}
+                                      {visit.tracking_date}
+                                    </p>
+                                    <p>
+                                      <strong>Time:</strong>{" "}
+                                      {visit.tracking_time}
+                                    </p>
+                                    <p>
+                                      <strong>Address:</strong>{" "}
+                                      {visit.address || "N/A"}
+                                    </p>
+                                    <p>
+                                      <strong>Latitude:</strong>{" "}
+                                      {visit.latitude}
+                                    </p>
+                                    <p>
+                                      <strong>Longitude:</strong>{" "}
+                                      {visit.longitude}
                                     </p>
                                   </div>
                                 </Popup>
                               </Marker>
                             ))}
+
+                            {/* ATTENDANCE CHECK-IN POINTS */}
+                            {attendanceCheckInPoints.map(
+                              (point, pointIndex) => (
+                                <Marker
+                                  key={`check-in-${point.id || pointIndex}`}
+                                  position={[point.latitude, point.longitude]}
+                                  icon={checkInMarkerIcon}
+                                >
+                                  <Popup>
+                                    <div className="min-w-[210px]">
+                                      <h3 className="font-semibold text-base mb-2 text-amber-600">
+                                        Attendance Check-in
+                                      </h3>
+                                      <p>
+                                        <strong>Date:</strong>{" "}
+                                        {point.tracking_date}
+                                      </p>
+                                      <p>
+                                        <strong>Time:</strong>{" "}
+                                        {point.tracking_time}
+                                      </p>
+                                      <p>
+                                        <strong>Address:</strong>{" "}
+                                        {point.address || "N/A"}
+                                      </p>
+                                    </div>
+                                  </Popup>
+                                </Marker>
+                              ),
+                            )}
                           </MapContainer>
                         </div>
+                        {customerVisits.length > 0 && (
+                          <div className="mt-4">
+                            <h4 className="text-sm font-semibold text-gray-700 mb-3">
+                              Visit Points ({customerVisits.length})
+                            </h4>
 
-                        <div className="mt-4">
-                          <h4 className="text-sm font-semibold text-gray-700 mb-3">
-                            Tracking History
-                          </h4>
+                            <div className="space-y-2">
+                              {customerVisits.map((visit, index) => (
+                                <div
+                                  key={visit.id || index}
+                                  className="flex items-start gap-3 rounded-lg p-3 bg-blue-50 border border-blue-100"
+                                >
+                                  <span className="h-6 w-6 shrink-0 flex items-center justify-center rounded-full bg-blue-600 text-white text-xs font-bold">
+                                    V
+                                  </span>
 
-                          <div className="max-h-[300px] overflow-y-auto space-y-2">
-                       {paginatedTrackingData.map(
-  (tracking, index) => (
-                              <div
-                                key={tracking.id || index}
-                                className="rounded-lg p-3 transition border bg-gray-50 border-transparent"
-                              >
-                                <div className="flex items-center justify-between">
-                                  <p className="text-xs font-semibold text-gray-700">
-                                    Point #{index + 1}
-                                  </p>
-
-                                  <p className="text-xs text-gray-400">
-                                    {tracking.tracking_date}{" "}
-                                    {tracking.tracking_time}
-                                  </p>
+                                  <div>
+                                    <p className="text-xs font-semibold text-gray-700">
+                                      Visit {index + 1} · {visit.tracking_time}
+                                    </p>
+                                    <p className="text-xs text-gray-500 mt-0.5">
+                                      {visit.address || "Address unavailable"}
+                                    </p>
+                                  </div>
                                 </div>
-
-                                <p className="text-xs text-gray-500 mt-1">
-                                  {tracking.address || "Address unavailable"}
-                                </p>
-
-                                <p className="text-[10px] text-gray-400 mt-1">
-                                  {tracking.latitude}, {tracking.longitude}
-                                </p>
-                              </div>
-                            ))}
+                              ))}
+                            </div>
                           </div>
-                           <div className="flex items-center justify-between mt-4">
+                        )}
+
+                        <div className="mt-4 flex justify-end">
                           <button
                             type="button"
-                            onClick={() =>
-                              setCurrentPage((prev) => Math.max(prev - 1, 1))
-                            }
-                            disabled={currentPage === 1}
-className="px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-800 text-white border border-gray-800 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-900"                          >
-                            Previous
-                          </button>
-
-                          <span className="text-xs text-gray-500">
-                            Page {currentPage} of {totalPages}
-                          </span>
-
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setCurrentPage((prev) =>
-                                Math.min(prev + 1, totalPages),
-                              )
-                            }
-                            disabled={currentPage === totalPages}
-                            className="px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-900 text-white-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-600"
+                            onClick={handleDownloadExcel}
+                            className="px-4 py-2 text-sm font-medium rounded-lg bg-purple-600 text-white hover:bg-purple-700 transition"
                           >
-                            Next
+                            Download Excel
                           </button>
                         </div>
-                        </div>
-                       
                       </>
                     ) : (
                       <div className="bg-gray-50 rounded-xl p-6 text-center">
@@ -686,30 +1171,37 @@ className="px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-800 text-white bor
                     )}
                   </div>
 
+                  {/* ================= ATTENDANCE ================= */}
                   <div className="border-t pt-4">
                     <h3 className="text-sm font-semibold text-gray-700 mb-3">
                       Today's Attendance
                     </h3>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="bg-gray-50 rounded-lg p-3">
-                        <p className="text-xs text-gray-400">
-                          Attendance Status
-                        </p>
+                    {isTodaySelected ? (
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="bg-gray-50 rounded-lg p-3">
+                          <p className="text-xs text-gray-400">
+                            Attendance Status
+                          </p>
+                          <p className="text-sm font-medium text-gray-800 mt-1">
+                            {user.attendance_status || "N/A"}
+                          </p>
+                        </div>
 
-                        <p className="text-sm font-medium text-gray-800 mt-1">
-                          {user.attendance_status || "N/A"}
-                        </p>
+                        <div className="bg-gray-50 rounded-lg p-3">
+                          <p className="text-xs text-gray-400">Check In</p>
+                          <p className="text-sm font-medium text-gray-800 mt-1">
+                            {user.check_in_time || "No check-in"}
+                          </p>
+                        </div>
                       </div>
-
-                      <div className="bg-gray-50 rounded-lg p-3">
-                        <p className="text-xs text-gray-400">Check In</p>
-
-                        <p className="text-sm font-medium text-gray-800 mt-1">
-                          {user.check_in_time || "No check-in"}
-                        </p>
+                    ) : (
+                      <div className="bg-gray-50 rounded-lg p-3 text-xs text-gray-500">
+                        Attendance details are available only for today. For{" "}
+                        {selectedDate || "the selected date"}, see the GPS
+                        report above.
                       </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               ) : (
