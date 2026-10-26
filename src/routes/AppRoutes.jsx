@@ -18,6 +18,9 @@ import Expenses from "../pages/expenses/Expenses";
 import AddClientType from "../pages/add-client-type/AddClientType";
 import ImageViewer from "../components/ImageViewer";
 import PrivacyPolicy from '../pages/PrivacyPolicy/PrivacyPolicy'
+import LeaveManagement from "../pages/LeaveManagement/LeaveManagement";
+import TodaysLeaveSummary from "../pages/LeaveManagement/TodaysLeaveSummary";
+import Customer from "../pages/Customer/Customer";
 
 const AppRoutes = () => {
   return (
@@ -30,6 +33,10 @@ const AppRoutes = () => {
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="User" element={<User />} />
         <Route path="Manager" element={<Manager />} />
+        <Route
+          path="leave-management"
+          element={<LeaveManagement />}
+        />
         <Route path="add-client-type" element={<AddClientType />} />
         <Route path="assign-user" element={<AssignUser />} />
         <Route path="expenses" element={<Expenses />} />
@@ -37,11 +44,16 @@ const AppRoutes = () => {
         <Route path="Dailyreports" element={<Dailyreports />} />
         <Route path="Visit" element={<Visit />} />
         <Route path="settings" element={<Setting />} />
-       
+        <Route
+          path="/todays-leave-summary"
+          element={<TodaysLeaveSummary />}
+        />
 
         <Route path="/image-viewer" element={<ImageViewer />} />
+        <Route path="/customer" element={<Customer />} />
+
       </Route>
-       <Route path="privacy-policy" element={<PrivacyPolicy />} />
+      <Route path="privacy-policy" element={<PrivacyPolicy />} />
 
       <Route path="*" element={<NotFound />} />
     </Routes>

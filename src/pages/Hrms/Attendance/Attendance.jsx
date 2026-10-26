@@ -189,8 +189,9 @@ const Attendance = () => {
     return [...new Set(shifts)];
   }, [data]);
 
-  const filteredData = useMemo(() => {
-    return data.filter((item) => {
+const filteredData = useMemo(() => {
+  return data
+    .filter((item) => {
       const matchesEmployee =
         selectedEmployees.length === 0 || selectedEmployees.includes(item.name);
 
@@ -198,8 +199,9 @@ const Attendance = () => {
       const matchesShift = shiftFilter === "" || itemShift === shiftFilter;
 
       return matchesEmployee && matchesShift;
-    });
-  }, [data, selectedEmployees, shiftFilter]);
+    })
+    .sort((a, b) => new Date(b.date) - new Date(a.date)); // latest date pehle
+}, [data, selectedEmployees, shiftFilter]);
 
   const uniqueEmployees = useMemo(() => {
     const seen = new Set();

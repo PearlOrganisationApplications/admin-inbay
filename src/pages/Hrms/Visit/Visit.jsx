@@ -60,6 +60,19 @@ const Visit = () => {
     setCurrentPage(1);
   };
 
+  const handleReset = () => {
+    const now = new Date();
+    setSelectedEmployees([]);
+    setEmployeeSearch("");
+    setShowEmployeeDropdown(false);
+    setReportType("monthly");
+    setSelectedMonth(now.getMonth() + 1);
+    setSelectedYear(now.getFullYear());
+    setCustomStartDate("");
+    setCustomEndDate("");
+    setCurrentPage(1);
+  };
+
   // ======================
   // API STATE
   // ======================
@@ -189,7 +202,6 @@ const Visit = () => {
       "Customer Contact",
       "Customer Mobile",
       "Customer Address",
-      
       "Scheduled Time",
       "Actual Check In",
       "Actual Check Out",
@@ -242,7 +254,6 @@ const Visit = () => {
             customer?.contact || "-",
             customer?.mobile || "-",
             customer?.address || "-",
-            
             schedule?.scheduled || "-",
             schedule?.actual || "-",
             schedule?.actual_out || "-",
@@ -293,8 +304,16 @@ const Visit = () => {
     URL.revokeObjectURL(url);
   };
 
+  // pagination helpers
+  const windowStart = Math.floor((currentPage - 1) / PAGE_WINDOW) * PAGE_WINDOW;
+  const windowLength = Math.min(PAGE_WINDOW, totalPages - windowStart);
+  const showingFrom =
+    filteredData.length === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1;
+  const showingTo = Math.min(currentPage * ITEMS_PER_PAGE, filteredData.length);
+
   return (
-    <div className="p-4 md:p-8 bg-gray-50 h-screen overflow-hidden flex flex-col font-sans">
+    // Mobile: normal page scroll | Desktop (md+): fixed height + inner scroll
+    <div className="p-3 sm:p-4 md:p-8 bg-gray-50 min-h-screen md:h-screen md:overflow-hidden flex flex-col font-sans">
       <style>{`
         @keyframes fadeInUp {
           from { opacity: 0; transform: translateY(10px); }
@@ -317,20 +336,20 @@ const Visit = () => {
         }
       `}</style>
 
-      {/* 1. TOP TITLE SECTION - FIXED */}
-      <div className="flex justify-between items-center mb-6 shrink-0 border-b border-gray-200 pb-4">
-        <div>
-          <h2 className="text-3xl font-bold text-gray-800 tracking-tight">
+      {/* 1. TOP TITLE SECTION */}
+      <div className="flex justify-between items-center gap-3 mb-4 md:mb-6 shrink-0 border-b border-gray-200 pb-4">
+        <div className="min-w-0">
+          <h2 className="text-2xl md:text-3xl font-bold text-gray-800 tracking-tight">
             Visit Logs
           </h2>
-          <p className="text-sm text-gray-500 font-medium">
+          <p className="text-xs sm:text-sm text-gray-500 font-medium">
             Track sales rep visits, customer details, and outcomes
           </p>
         </div>
         <button
           onClick={handleExport}
           disabled={isLoading}
-          className="bg-[#8b2cf5] text-white px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-[#7a26d9] active:scale-95 flex items-center gap-2 transition-all duration-150 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+          className="shrink-0 bg-[#8b2cf5] text-white px-3 sm:px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-[#7a26d9] active:scale-95 flex items-center gap-2 transition-all duration-150 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <svg
             className="w-4 h-4"
@@ -345,7 +364,8 @@ const Visit = () => {
               d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
             />
           </svg>
-          Export CSV
+          <span className="hidden sm:inline">Export CSV</span>
+          <span className="sm:hidden">CSV</span>
         </button>
       </div>
 
@@ -363,13 +383,14 @@ const Visit = () => {
         reportType={reportType}
         setShowMonthlyPopup={setShowMonthlyPopup}
         setShowCustomPopup={setShowCustomPopup}
+        onReset={handleReset}
         dropdownRef={dropdownRef}
       />
 
-      {/* 3. SCROLLABLE AREA (Stats + Visit Cards) */}
-      <div className="flex-1 overflow-y-auto space-y-8 pr-2 custom-scrollbar pb-10">
+      {/* 3. CONTENT (Stats + Visit Cards) — desktop pe hi inner scroll */}
+      <div className="md:flex-1 md:overflow-y-auto space-y-6 md:space-y-8 md:pr-2 custom-scrollbar pb-4">
         {/* STATS CARDS */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-6">
           <StatCard
             label="Total Visits"
             value={summary.total_visits}
@@ -378,7 +399,7 @@ const Visit = () => {
             iconColor="text-[#8b2cf5]"
             icon={
               <svg
-                className="w-8 h-8"
+                className="w-7 h-7"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -406,7 +427,7 @@ const Visit = () => {
             iconColor="text-green-600"
             icon={
               <svg
-                className="w-8 h-8"
+                className="w-7 h-7"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -428,7 +449,7 @@ const Visit = () => {
             iconColor="text-red-500"
             icon={
               <svg
-                className="w-8 h-8"
+                className="w-7 h-7"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -467,57 +488,59 @@ const Visit = () => {
         </div>
       </div>
 
-      {/* 4. PAGINATION (matches Attendance / Reports pages) */}
+      {/* 4. PAGINATION — right end, compact & professional */}
       {!isLoading && totalPages > 1 && (
-        <div className="flex justify-center items-center gap-2 mt-4 pb-4 shrink-0 bg-gray-50 fade-in">
-          <button
-            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-            disabled={currentPage === 1}
-            className="p-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center"
-          >
-            <ChevronLeft size={18} />
-          </button>
+        <div className="flex items-center justify-end sm:justify-between gap-3 mt-3 pt-3 pb-2 shrink-0 border-t border-gray-200 fade-in">
+          <p className="hidden sm:block text-sm text-gray-500">
+            Showing{" "}
+            <span className="font-semibold text-gray-700">
+              {showingFrom}–{showingTo}
+            </span>{" "}
+            of{" "}
+            <span className="font-semibold text-gray-700">
+              {filteredData.length}
+            </span>{" "}
+            visits
+          </p>
 
-          <div className="flex items-center gap-1">
-            {Array.from(
-              {
-                length: Math.min(
-                  PAGE_WINDOW,
-                  totalPages -
-                    Math.floor((currentPage - 1) / PAGE_WINDOW) * PAGE_WINDOW,
-                ),
-              },
-              (_, i) => {
-                const page =
-                  Math.floor((currentPage - 1) / PAGE_WINDOW) * PAGE_WINDOW +
-                  i +
-                  1;
-                return (
-                  <button
-                    key={page}
-                    onClick={() => setCurrentPage(page)}
-                    className={`w-9 h-9 rounded-lg text-sm font-medium transition-all duration-150 ${
-                      currentPage === page
-                        ? "bg-[#8b2cf5] text-white shadow-sm scale-105"
-                        : "text-gray-600 hover:bg-gray-100 bg-white border border-gray-200"
-                    }`}
-                  >
-                    {page}
-                  </button>
-                );
-              },
-            )}
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              aria-label="Previous page"
+              className="w-9 h-9 rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
+            >
+              <ChevronLeft size={18} />
+            </button>
+
+            {Array.from({ length: windowLength }, (_, i) => {
+              const page = windowStart + i + 1;
+              return (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`w-9 h-9 rounded-lg text-sm font-medium transition-all duration-150 ${
+                    currentPage === page
+                      ? "bg-[#8b2cf5] text-white shadow-sm"
+                      : "text-gray-600 hover:bg-gray-100 bg-white border border-gray-200"
+                  }`}
+                >
+                  {page}
+                </button>
+              );
+            })}
+
+            <button
+              onClick={() =>
+                setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+              }
+              disabled={currentPage === totalPages}
+              aria-label="Next page"
+              className="w-9 h-9 rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
+            >
+              <ChevronRight size={18} />
+            </button>
           </div>
-
-          <button
-            onClick={() =>
-              setCurrentPage((prev) => Math.min(prev + 1, totalPages))
-            }
-            disabled={currentPage === totalPages}
-            className="p-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center"
-          >
-            <ChevronRight size={18} />
-          </button>
         </div>
       )}
 
@@ -540,18 +563,20 @@ const Visit = () => {
 // ---- small presentational pieces ----
 
 const StatCard = ({ label, value, isLoading, iconBg, iconColor, icon }) => (
-  <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-5 transition-shadow hover:shadow-md">
+  <div className="bg-white p-4 md:p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4 transition-shadow hover:shadow-md">
     <div
-      className={`w-14 h-14 ${iconBg} rounded-2xl flex items-center justify-center ${iconColor}`}
+      className={`w-12 h-12 md:w-14 md:h-14 shrink-0 ${iconBg} rounded-2xl flex items-center justify-center ${iconColor}`}
     >
       {icon}
     </div>
-    <div>
+    <div className="min-w-0">
       <p className="text-sm font-bold text-gray-500 mb-1">{label}</p>
       {isLoading ? (
         <div className="h-8 w-16 rounded skeleton" />
       ) : (
-        <p className="text-3xl font-black text-gray-900 fade-in">{value}</p>
+        <p className="text-2xl md:text-3xl font-black text-gray-900 fade-in truncate">
+          {value}
+        </p>
       )}
     </div>
   </div>
@@ -566,23 +591,23 @@ const LoadingState = () => (
 
 const VisitCard = ({ item, index, renderImageLink }) => (
   <div
-    className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 fade-in-up hover:shadow-md transition-shadow duration-200"
+    className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-5 fade-in-up hover:shadow-md transition-shadow duration-200"
     style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}
   >
-    <div className="flex justify-between items-start mb-6">
-      <div className="flex gap-4 items-center">
-        <div className="w-14 h-14 rounded-full bg-[#8b2cf5] text-white flex items-center justify-center text-xl font-bold shadow-sm">
+    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-5">
+      <div className="flex gap-3 sm:gap-4 items-center min-w-0">
+        <div className="w-12 h-12 sm:w-14 sm:h-14 shrink-0 rounded-full bg-[#8b2cf5] text-white flex items-center justify-center text-lg sm:text-xl font-bold shadow-sm">
           {item.salesRep.charAt(0)}
         </div>
-        <div>
-          <h3 className="text-lg font-bold text-gray-900">{item.salesRep}</h3>
-          <div className="flex items-center gap-4 text-sm text-gray-500 mt-1">
-            <span className="flex items-center gap-1.5">
-              {item.salesRepEmail}
-            </span>
-            <span className="flex items-center gap-1.5">{item.route}</span>
+        <div className="min-w-0">
+          <h3 className="text-base sm:text-lg font-bold text-gray-900 truncate">
+            {item.salesRep}
+          </h3>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-0.5 text-sm text-gray-500 mt-1">
+            <span className="break-all">{item.salesRepEmail}</span>
+            <span>{item.route}</span>
           </div>
-          <div className="flex gap-2 mt-2.5">
+          <div className="flex flex-wrap gap-2 mt-2.5">
             <span className="bg-purple-50 text-[#8b2cf5] text-[11px] px-2.5 py-1 rounded-md font-semibold tracking-wide">
               {item.department}
             </span>
@@ -592,7 +617,7 @@ const VisitCard = ({ item, index, renderImageLink }) => (
           </div>
         </div>
       </div>
-      <div className="flex flex-col items-end gap-2">
+      <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-2">
         <div className="px-3 py-1 rounded-full border border-green-200 bg-green-50 text-green-700 flex items-center gap-1.5 text-xs font-bold">
           Visited
         </div>
@@ -608,15 +633,17 @@ const VisitCard = ({ item, index, renderImageLink }) => (
           Customer Details
         </h4>
         <div className="space-y-2.5 text-sm text-gray-800">
-          <div className="flex justify-between">
+          <div className="flex justify-between gap-3">
             <span>Customer</span>
-            <span className="font-semibold">{item.customer}</span>
+            <span className="font-semibold text-right">{item.customer}</span>
           </div>
-          <div className="flex justify-between">
+          <div className="flex justify-between gap-3">
             <span>Contact</span>
-            <span className="font-semibold">{item.contactPerson}</span>
+            <span className="font-semibold text-right">
+              {item.contactPerson}
+            </span>
           </div>
-          <div className="flex justify-between pt-2 border-t border-gray-100">
+          <div className="flex justify-between gap-3 pt-2 border-t border-gray-100">
             <span>Address</span>
             <span className="truncate w-32 text-right">{item.address}</span>
           </div>
@@ -628,15 +655,15 @@ const VisitCard = ({ item, index, renderImageLink }) => (
           Schedule & Time
         </h4>
         <div className="space-y-2.5 text-sm text-gray-800">
-          <div className="flex justify-between">
+          <div className="flex justify-between gap-3">
             <span>Scheduled</span>
             <span className="font-semibold">{item.scheduleVisitStartTime}</span>
           </div>
-          <div className="flex justify-between">
+          <div className="flex justify-between gap-3">
             <span>Actual</span>
             <span className="font-semibold">{item.actualVisitStartTime}</span>
           </div>
-          <div className="flex justify-between pt-2 border-t border-gray-100">
+          <div className="flex justify-between gap-3 pt-2 border-t border-gray-100">
             <span>Duration</span>
             <span className="bg-purple-100 text-[#8b2cf5] px-2 py-0.5 rounded font-bold">
               {item.durationTime}
@@ -651,15 +678,15 @@ const VisitCard = ({ item, index, renderImageLink }) => (
             Outcomes
           </h4>
           <div className="space-y-2.5 text-sm text-gray-800">
-            <div className="flex justify-between">
+            <div className="flex justify-between gap-3">
               <span>Order</span>
               <span className="text-green-600 font-semibold">{item.order}</span>
             </div>
-            <div className="flex justify-between">
+            <div className="flex justify-between gap-3">
               <span>Expense</span>
               <span className="text-red-500 font-semibold">{item.expense}</span>
             </div>
-            <div className="flex justify-between pt-2 border-t border-gray-100">
+            <div className="flex justify-between gap-3 pt-2 border-t border-gray-100">
               <span>Remark</span>
               <span className="truncate w-32 text-right">{item.remark}</span>
             </div>

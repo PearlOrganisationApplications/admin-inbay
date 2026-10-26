@@ -1,28 +1,25 @@
+
+import api from "../../../API/axios";
+
+// 1. Fetch All Managers
 export const fetchManagers = async (setManagers) => {
   try {
+    const response = await api.get("/admin/managers");
 
-    const token = localStorage.getItem("token");
+    const data = response.data;
 
-    const response = await fetch(
-      "https://test.pearl-developer.com/Inbay_Innovations/public/api/admin/managers",
-      {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      }
+    setManagers?.(
+      Array.isArray(data) ? data : data?.data || []
     );
-
-    const data = await response.json();
-
-    setManagers?.(Array.isArray(data) ? data : data?.data || []);
   } catch (error) {
-    console.error("Manager API error:", error);
+    console.error(
+      "Manager API error:",
+      error.response?.data || error
+    );
   }
 };
 
-
+// 2. Toggle Manager Status
 export const toggleManagerStatus = async (
   managerId,
   currentIsActive,
@@ -30,42 +27,54 @@ export const toggleManagerStatus = async (
   showToast
 ) => {
   try {
-    const token = localStorage.getItem("token");
-    const newStatus = currentIsActive === 1 ? 0 : 1;
+    const newStatus =
+      Number(currentIsActive) === 1 ? 0 : 1;
 
-    const response = await fetch(
-      "https://test.pearl-developer.com/Inbay_Innovations/public/api/admin/manager-status",
+    const response = await api.post(
+      "/admin/manager-status",
       {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          user_id: managerId,
-          is_active: newStatus,
-        }),
+        user_id: managerId,
+        is_active: newStatus,
       }
     );
 
-    if (response.ok) {
-      showToast?.(
-        `Manager ${newStatus === 1 ? "Activated" : "Deactivated"} successfully!`,
-        "success"
-      );
+    const result = response.data;
 
-      fetchManagers?.(); // refresh list
-    } else {
-      showToast?.("Failed to update manager status", "error");
+    if (
+      result?.success === false ||
+      result?.status === false
+    ) {
+      showToast?.(
+        result.message || "Failed to update manager status",
+        "error"
+      );
+      return;
     }
+
+    showToast?.(
+      result?.message ||
+        `Manager ${
+          newStatus === 1 ? "Activated" : "Deactivated"
+        } successfully!`,
+      "success"
+    );
+
+    fetchManagers?.();
   } catch (error) {
-    showToast?.("Error connecting to server", "error");
+    console.error(
+      "Toggle manager status error:",
+      error.response?.data || error
+    );
+
+    showToast?.(
+      error.response?.data?.message ||
+        "Error connecting to server",
+      "error"
+    );
   }
 };
 
-
-
-
+// 3. Create Manager
 export const handleCreateManager = async (
   e,
   formData,
@@ -79,48 +88,55 @@ export const handleCreateManager = async (
   setIsSubmitting?.(true);
 
   try {
-    const token = localStorage.getItem("token");
-
-    const response = await fetch(
-      "https://test.pearl-developer.com/Inbay_Innovations/public/api/admin/create-manager",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      }
+    const response = await api.post(
+      "/admin/create-manager",
+      formData
     );
 
-    const result = await response.json();
+    const result = response.data;
 
-    if (response.ok) {
-      showToast?.("Manager created successfully!", "success");
-      setIsModalOpen?.(false);
-      setFormData?.({ name: "", email: "", password: "" });
-      fetchManagers?.();
-    } else {
-      showToast?.(result.message || "Failed to create manager", "error");
+    if (
+      result?.success === false ||
+      result?.status === false
+    ) {
+      showToast?.(
+        result.message || "Failed to create manager",
+        "error"
+      );
+      return;
     }
+
+    showToast?.(
+      result?.message || "Manager created successfully!",
+      "success"
+    );
+
+    setIsModalOpen?.(false);
+
+    setFormData?.({
+      name: "",
+      email: "",
+      password: "",
+    });
+
+    fetchManagers?.();
   } catch (error) {
-    showToast?.("An error occurred. Please try again.", "error");
+    console.error(
+      "Create manager error:",
+      error.response?.data || error
+    );
+
+    showToast?.(
+      error.response?.data?.message ||
+        "An error occurred. Please try again.",
+      "error"
+    );
   } finally {
     setIsSubmitting?.(false);
   }
 };
 
-
-
-
-
-
-
-
-
-
-
-
+// 4. Reset Password
 export const handleResetPassword = async (
   selectedUserId,
   resetPassword,
@@ -129,41 +145,49 @@ export const handleResetPassword = async (
   showToast
 ) => {
   try {
-    const token = localStorage.getItem("token");
-
-    const res = await fetch(
-      "https://test.pearl-developer.com/Inbay_Innovations/public/api/admin/reset-password",
+    const response = await api.post(
+      "/admin/reset-password",
       {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
-        },
-        body: JSON.stringify({
-          user_id: selectedUserId,
-          password: resetPassword,
-        }),
+        user_id: selectedUserId,
+        password: resetPassword,
       }
     );
 
-    const data = await res.json();
+    const data = response.data;
 
-    if (!res.ok) {
-      showToast(data.message || "Something went wrong", "error");
+    if (
+      data?.success === false ||
+      data?.status === false
+    ) {
+      showToast?.(
+        data.message || "Something went wrong",
+        "error"
+      );
       return;
     }
 
-    showToast(data.message, "success");
+    showToast?.(
+      data?.message || "Password reset successfully",
+      "success"
+    );
 
     setIsResetModalOpen(false);
     setResetPassword("");
-  } catch (err) {
-    showToast(err.message || "Error", "error");
+  } catch (error) {
+    console.error(
+      "Reset password error:",
+      error.response?.data || error
+    );
+
+    showToast?.(
+      error.response?.data?.message ||
+        "Failed to reset password",
+      "error"
+    );
   }
 };
 
-
+// 5. View Manager Details
 export const handleViewManager = async (
   managerId,
   setSelectedManagerData,
@@ -171,28 +195,32 @@ export const handleViewManager = async (
   showToast
 ) => {
   try {
-    const token = localStorage.getItem("token");
-
-    const response = await fetch(
-      `https://test.pearl-developer.com/Inbay_Innovations/public/api/admin/manager/users/${managerId}`,
-      {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      }
+    const response = await api.get(
+      `/admin/manager/users/${managerId}`
     );
 
-    const result = await response.json();
+    const result = response.data;
 
-    if (response.ok) {
-      setSelectedManagerData(result.data);
-      setViewModalOpen(true);
-    } else {
-      showToast("Failed to fetch manager details", "error");
+    if (result?.success === false || result?.status === false) {
+      showToast?.(
+        result.message || "Failed to fetch manager details",
+        "error"
+      );
+      return;
     }
+
+    setSelectedManagerData(result.data);
+    setViewModalOpen(true);
   } catch (error) {
-    showToast("Error fetching manager details", "error");
+    console.error(
+      "View manager error:",
+      error.response?.data || error
+    );
+
+    showToast?.(
+      error.response?.data?.message ||
+        "Error fetching manager details",
+      "error"
+    );
   }
 };

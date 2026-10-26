@@ -13,16 +13,20 @@ import {
   XCircle,
   AlertTriangle,
   X,
-  RefreshCw,
   ArrowRight,
+  Trash2,
 } from "lucide-react";
 
 import api from "../../API/axios";
-import { getUsersByManagerId } from "../../API/dashboardApis";
+import {
+  getUsersByManagerId,
+  removeAllUserFromManager,
+} from "../../API/dashboardApis";
+import DeleteAssignUser from "./delteassignuser";
 
-const BASE_URL =
-  "https://test.pearl-developer.com/Inbay_Innovations/public/api";
-const IMAGE_BASE = "https://test.pearl-developer.com/Inbay_Innovations/public/";
+
+const IMAGE_BASE = (api.defaults.baseURL || "").replace(/\/api\/?$/, "/");
+
 const DEFAULT_COUNTS = {
   total_users: 0,
   active_users: 0,
@@ -50,9 +54,7 @@ const MODAL_CONFIG = {
   },
 };
 
-/* -------------------------------------------------------------------------- */
-/*  Utilities                                                                  */
-/* -------------------------------------------------------------------------- */
+
 
 function useDebouncedValue(value, delayMs = 250) {
   const [debounced, setDebounced] = useState(value);
@@ -66,10 +68,12 @@ function useDebouncedValue(value, delayMs = 250) {
 function initials(name, fallback = "U") {
   return name?.charAt(0)?.toUpperCase() || fallback;
 }
+
 function imageUrl(path) {
   if (!path) return null;
   return path.startsWith("http") ? path : IMAGE_BASE + path;
 }
+
 function extractList(payload, keys = ["data", "users", "assigned_users"]) {
   if (Array.isArray(payload)) return payload;
   for (const key of keys) {
@@ -80,7 +84,7 @@ function extractList(payload, keys = ["data", "users", "assigned_users"]) {
 }
 
 /* -------------------------------------------------------------------------- */
-/*  Data hooks                                                                 */
+/*  Data hooks                                                                */
 /* -------------------------------------------------------------------------- */
 
 function useManagersAndUsers(onError) {
@@ -93,8 +97,8 @@ function useManagersAndUsers(onError) {
     setLoading(true);
     try {
       const [mgrRes, userRes] = await Promise.all([
-        api.get(`${BASE_URL}/admin/managers`),
-        api.get(`${BASE_URL}/admin/get/user`),
+        api.get("/admin/managers"),
+        api.get("/admin/get/user"),
       ]);
 
       if (mgrRes.data?.status) setManagers(mgrRes.data.data || []);
@@ -167,6 +171,9 @@ const AssignUser = () => {
   const [managerSearch, setManagerSearch] = useState("");
   const [activeTab, setActiveTab] = useState("available"); // "available" | "assigned"
   const [assigning, setAssigning] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
+  const [deletingAll, setDeletingAll] = useState(false);
   const [modal, setModal] = useState({
     show: false,
     type: "success",
@@ -266,7 +273,9 @@ const AssignUser = () => {
     if (!selectedManager || availableUsers.length === 0) return;
 
     setSelectedUsers((prev) => {
-      const allSelected = availableUsers.every((u) => isUserSelected(u.id));
+      const allSelected = availableUsers.every((u) =>
+        prev.some((p) => p.id === u.id),
+      );
       if (allSelected) {
         return prev.filter(
           (selected) => !availableUsers.some((u) => u.id === selected.id),
@@ -276,20 +285,20 @@ const AssignUser = () => {
       const newUsers = availableUsers.filter((u) => !existingIds.has(u.id));
       return [...prev, ...newUsers];
     });
-  }, [selectedManager, availableUsers, isUserSelected]);
+  }, [selectedManager, availableUsers]);
 
   const handleAssign = useCallback(async () => {
     if (!selectedManager || selectedUsers.length === 0) return;
 
     setAssigning(true);
     try {
-      const response = await api.post(`${BASE_URL}/assign-user-to-manager`, {
+      const response = await api.post("/assign-user-to-manager", {
         manager_id: selectedManager.id,
         user_ids: selectedUsers.map((user) => user.id),
       });
       const result = response.data;
 
-      // API ke response ki IDs ko naam mein convert karo
+      // API response ki IDs ko naam mein convert karo
       const getUserName = (id) =>
         users.find((u) => String(u.id) === String(id))?.name || `User #${id}`;
 
@@ -331,6 +340,53 @@ const AssignUser = () => {
     refetchAll,
     showModal,
   ]);
+
+  const handleUnassignSuccess = useCallback(
+    async (user) => {
+      await refetchAssigned();
+      await refetchAll();
+      showModal(
+        "success",
+        "User Removed",
+        `${user.name} has been unassigned from ${selectedManager?.name}.`,
+      );
+    },
+    [refetchAssigned, refetchAll, showModal, selectedManager],
+  );
+
+  const handleDeleteAll = useCallback(async () => {
+    if (!selectedManager || assignedUsers.length === 0) return;
+
+    setDeletingAll(true);
+    try {
+      const response = await removeAllUserFromManager({
+        manager_id: selectedManager.id,
+        user_ids: assignedUsers.map((user) => user.id),
+      });
+
+      setShowDeleteAllConfirm(false);
+      showModal(
+        "success",
+        "All Users Removed",
+        response?.data?.message ||
+          `All assigned users have been removed from ${selectedManager.name}.`,
+      );
+      await refetchAssigned();
+      await refetchAll();
+    } catch (error) {
+      console.error("Delete all error:", error);
+      setShowDeleteAllConfirm(false);
+      showModal(
+        "error",
+        "Delete Failed",
+        error?.response?.data?.message ||
+          "Unable to remove assigned users. Please try again.",
+      );
+    } finally {
+      setDeletingAll(false);
+    }
+  }, [selectedManager, assignedUsers, refetchAssigned, refetchAll, showModal]);
+
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-[#f9fafb]">
@@ -371,7 +427,8 @@ const AssignUser = () => {
                 <AssignedTable
                   users={assignedUsers}
                   loading={assignedLoading}
-                  onRefresh={refetchAssigned}
+                  onDelete={setDeleteTarget}
+                  onDeleteAllClick={() => setShowDeleteAllConfirm(true)}
                 />
               ) : (
                 <AvailableTable
@@ -401,13 +458,30 @@ const AssignUser = () => {
         />
       )}
 
+      <DeleteAllModal
+        isOpen={showDeleteAllConfirm}
+        manager={selectedManager}
+        count={assignedUsers.length}
+        deleting={deletingAll}
+        onCancel={() => setShowDeleteAllConfirm(false)}
+        onConfirm={handleDeleteAll}
+      />
+
+      <DeleteAssignUser
+        isOpen={!!deleteTarget}
+        user={deleteTarget}
+        manager={selectedManager}
+        onClose={() => setDeleteTarget(null)}
+        onSuccess={handleUnassignSuccess}
+      />
+
       <ResultModal modal={modal} onClose={closeModal} />
     </div>
   );
 };
 
 /* -------------------------------------------------------------------------- */
-/*  Top bar — editorial metric strip instead of stat cards                    */
+/*  Top bar                                                                   */
 /* -------------------------------------------------------------------------- */
 
 const TopBar = ({ counts, managersCount }) => (
@@ -450,7 +524,7 @@ const Metric = ({ label, value, valueClass = "text-[#111827]" }) => (
 );
 
 /* -------------------------------------------------------------------------- */
-/*  Manager rail — dark, distinct from the working area                       */
+/*  Manager rail                                                              */
 /* -------------------------------------------------------------------------- */
 
 const ManagerRail = ({
@@ -612,7 +686,7 @@ const TabButton = ({ label, count, isActive, onClick }) => (
 );
 
 /* -------------------------------------------------------------------------- */
-/*  Available users — compact selectable table                                */
+/*  Available users table                                                     */
 /* -------------------------------------------------------------------------- */
 
 const AvailableTable = ({
@@ -751,7 +825,7 @@ const UserRow = ({ user, selected, alreadyAssigned, onToggle }) => (
       </span>
     </td>
 
-    <td className="py-3 pr-4 text-right">
+    <td className="py-3 pr-3 text-right">
       {alreadyAssigned ? (
         <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded font-bold whitespace-nowrap">
           Assigned
@@ -770,10 +844,10 @@ const UserRow = ({ user, selected, alreadyAssigned, onToggle }) => (
 );
 
 /* -------------------------------------------------------------------------- */
-/*  Assigned users — read-only table                                          */
+/*  Assigned users table                                                      */
 /* -------------------------------------------------------------------------- */
 
-const AssignedTable = ({ users, loading, onRefresh }) => (
+const AssignedTable = ({ users, loading, onDelete, onDeleteAllClick }) => (
   <div className="bg-white border border-[#e5e7eb] rounded-2xl overflow-hidden">
     <div className="flex items-center justify-between p-4 border-b border-[#e5e7eb]">
       <p className="text-xs font-bold text-[#6b7280] uppercase tracking-wider">
@@ -781,12 +855,12 @@ const AssignedTable = ({ users, loading, onRefresh }) => (
       </p>
       <button
         type="button"
-        onClick={onRefresh}
-        disabled={loading}
-        className="flex items-center gap-1.5 text-xs font-bold text-[#8b2cf5] hover:underline disabled:opacity-50"
+        onClick={onDeleteAllClick}
+        disabled={loading || users.length === 0}
+        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs font-bold hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
       >
-        <RefreshCw size={13} className={loading ? "animate-spin" : ""} />
-        Refresh
+        <Trash2 size={13} />
+        Delete All
       </button>
     </div>
 
@@ -840,11 +914,23 @@ const AssignedTable = ({ users, loading, onRefresh }) => (
                     {user.role || "—"}
                   </span>
                 </td>
-                <td className="py-3 pr-4 text-right">
+                <td className="py-3 pr-3 text-right">
                   <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded font-bold inline-flex items-center gap-1">
                     <CheckCircle2 size={11} />
                     Assigned
                   </span>
+                </td>
+
+                <td className="py-3 pr-4 text-right">
+                  <button
+                    type="button"
+                    onClick={() => onDelete(user)}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold text-red-600 bg-red-50 border border-red-200 hover:bg-red-100 transition-colors"
+                    title="Delete"
+                  >
+                    <Trash2 size={12} />
+                    <span>Delete</span>
+                  </button>
                 </td>
               </tr>
             ))}
@@ -854,6 +940,75 @@ const AssignedTable = ({ users, loading, onRefresh }) => (
     )}
   </div>
 );
+
+/* -------------------------------------------------------------------------- */
+/*  Delete-all confirmation modal                                             */
+/* -------------------------------------------------------------------------- */
+
+const DeleteAllModal = ({
+  isOpen,
+  manager,
+  count,
+  deleting,
+  onCancel,
+  onConfirm,
+}) => {
+  if (!isOpen) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-[110] flex items-center justify-center bg-black/40 p-4"
+      onClick={deleting ? undefined : onCancel}
+    >
+      <div
+        className="w-full max-w-xs rounded-xl bg-white p-5 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center gap-3 mb-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100 text-red-600">
+            <Trash2 size={20} />
+          </div>
+          <h3 className="text-base font-bold text-gray-900">
+            Delete All Users?
+          </h3>
+        </div>
+
+        <p className="text-sm text-gray-600 mb-5">
+          Are you sure you want to remove all {count} assigned user
+          {count === 1 ? "" : "s"}
+          {manager?.name ? ` from ${manager.name}` : ""}?
+        </p>
+
+        <div className="flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={deleting}
+            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-50"
+          >
+            Cancel
+          </button>
+
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={deleting}
+            className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {deleting ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Deleting
+              </>
+            ) : (
+              "Yes, Delete"
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 /* -------------------------------------------------------------------------- */
 /*  Sticky assignment bar                                                     */
@@ -902,7 +1057,7 @@ const ResultModal = ({ modal, onClose }) => {
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+      className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
       onClick={onClose}
     >
       <div

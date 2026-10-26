@@ -13,3 +13,16 @@ export const getUserTrackingById = (id) => {
 export const getUsersByManagerId = (managerId)=>{
     return api.get(`/admin/manager/${managerId}/users`);
 }
+
+export const removeUserFromManager = (payload) => {
+  return api.delete("/admin/remove-user-from-manager", {
+    data: payload,
+  });
+};
+
+export const removeAllUserFromManager = (payload) => {
+  return api.delete("/admin/remove-user-from-manager", {
+    data: payload,
+  });
+};
+

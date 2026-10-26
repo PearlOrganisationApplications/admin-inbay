@@ -13,12 +13,14 @@ import {
   X,
   CheckCircle,
   XCircle,
+  Pencil,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { fetchUsers, fetchSingleUser, handleResetPassword, toggleUserStatus, handleCreateUser } from "./userPageApis";
 import ResetPasswordModal from "./Modals/ResetPasswordModal";
 import CreateUserModal from "./Modals/CreateUserModal";
 import ViewUserModal from "./Modals/ViewUserModal";
+import EditUser from "./edituser";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -26,7 +28,7 @@ const User = () => {
   const [users, setUsers] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState("Active");
+  const [statusFilter, setStatusFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -37,12 +39,13 @@ const User = () => {
     password: "",
     per_km_rate: "",
     hq: "",
-    designation:"",
-    mobile_number:"",
+    designation: "",
+    mobile_number: "",
   });
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
   const [selectedUser, setSelectedUser] = useState(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [resetPassword, setResetPassword] = useState("");
@@ -78,12 +81,14 @@ const User = () => {
     });
   }, [users, searchQuery, roleFilter, statusFilter]);
 
-  const totalUsers = filteredUsers.length;
-  const activeUsers = filteredUsers.filter(
-    (u) => Number(u.is_active) === 1,
+  const totalUsers = users.length;
+
+  const activeUsers = users.filter(
+    (u) => Number(u.is_active) === 1
   ).length;
-  const inactiveUsers = filteredUsers.filter(
-    (u) => Number(u.is_active) !== 1,
+
+  const inactiveUsers = users.filter(
+    (u) => Number(u.is_active) === 0
   ).length;
 
   const totalPages = Math.ceil(filteredUsers.length / ITEMS_PER_PAGE) || 1;
@@ -104,26 +109,26 @@ const User = () => {
     setStatusFilter(e.target.value);
     setCurrentPage(1);
   };
-const handleExport = () => {
-  if (filteredUsers.length === 0) {
-    return alert("No data to export!");
-  }
+  const handleExport = () => {
+    if (filteredUsers.length === 0) {
+      return alert("No data to export!");
+    }
 
-  const data = filteredUsers.map((user) => ({
-    ID: user.id,
-    Name: user.name,
-    Email: user.email,
-    Role: user.role,
-    Status: Number(user.is_active) === 1 ? "Active" : "Inactive",
-  }));
+    const data = filteredUsers.map((user) => ({
+      ID: user.id,
+      Name: user.name,
+      Email: user.email,
+      Role: user.role,
+      Status: Number(user.is_active) === 1 ? "Active" : "Inactive",
+    }));
 
-  const worksheet = XLSX.utils.json_to_sheet(data);
-  const workbook = XLSX.utils.book_new();
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
 
-  XLSX.utils.book_append_sheet(workbook, worksheet, "Users");
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Users");
 
-  XLSX.writeFile(workbook, "users_list.xlsx");
-};
+    XLSX.writeFile(workbook, "users_list.xlsx");
+  };
   return (
     <div className="bg-gray-50 h-full w-full flex flex-col font-sans relative overflow-x-hidden">
       {" "}
@@ -200,9 +205,9 @@ const handleExport = () => {
           <select
             value={statusFilter}
             onChange={handleStatusFilter}
-            className="w-full md:w-40 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm bg-white cursor-pointer transition-all appearance-none"
+            className="w-full md:w-40 px-4 py-2 border border-gray-300 rounded-lg"
           >
-            
+            <option value="">All Users</option>
             <option value="Active">Active</option>
             <option value="Inactive">Inactive</option>
           </select>
@@ -330,9 +335,9 @@ const handleExport = () => {
                           <span
                             className={`text-xs px-3 py-1 rounded-full font-bold border ${Number(user.is_active) === 1 ? "bg-green-50 text-green-700 border-green-200" : "bg-red-50 text-red-700 border-red-200"}`}
                           >
-                            {Number(user.is_active) === 1
-                              ? "Active"
-                              : "Inactive"}
+                            <td>
+                              {Number(user.is_active) === 1 ? "Active" : "Inactive"}
+                            </td>
                           </span>
                         </td>
                         <td className="p-4 text-center flex items-center justify-center gap-2">
@@ -385,6 +390,18 @@ const handleExport = () => {
                           >
                             Reset Password
                           </button>
+
+                          <button
+                            onClick={() => {
+                              setSelectedUser(user);
+                              setIsEditModalOpen(true);
+                            }}
+                            className="px-3 py-2 inline-flex items-center justify-center gap-1.5 text-purple-600 bg-purple-50 rounded-full hover:bg-purple-600 hover:text-white transition-all duration-300 shadow-sm leading-none font-medium text-xs"
+                            title="Edit User"
+                          >
+                            <Pencil size={14} />
+                            Edit
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -421,10 +438,25 @@ const handleExport = () => {
                     </div>
                     <div className="pt-1 pl-2 flex gap-2">
                       <button
-                        onClick={() => fetchSingleUser(user.id)}
+                        onClick={() =>
+                          fetchSingleUser(
+                            user.id,
+                            setSelectedUser,
+                            setIsViewModalOpen
+                          )
+                        }
                         className="flex-1 flex items-center justify-center gap-2 text-blue-600 bg-blue-50 hover:bg-blue-600 hover:text-white py-2 rounded-lg font-semibold transition-all duration-300 shadow-sm text-sm"
                       >
                         <Eye size={18} /> View
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSelectedUser(user);
+                          setIsEditModalOpen(true);
+                        }}
+                        className="flex-1 flex items-center justify-center gap-2 text-purple-600 bg-purple-50 hover:bg-purple-600 hover:text-white py-2 rounded-lg font-semibold transition-all duration-300 shadow-sm text-sm"
+                      >
+                        <Pencil size={16} /> Edit
                       </button>
                       <button
                         onClick={() =>
@@ -526,6 +558,15 @@ const handleExport = () => {
           setResetPassword={setResetPassword}
           selectedUserId={selectedUserId}
           showToast={showToast}
+        />
+      }
+      {isEditModalOpen && selectedUser &&
+        <EditUser
+          isOpen={isEditModalOpen}
+          selectedUser={selectedUser}
+          setIsEditModalOpen={setIsEditModalOpen}
+          showToast={showToast}
+          setUsers={setUsers}
         />
       }
     </div>

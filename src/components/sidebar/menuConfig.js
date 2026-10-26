@@ -9,8 +9,9 @@ import {
   FaUserTie,
   FaMoneyBill,
   FaMapMarkerAlt,
-  FaHardHat 
+  FaClipboardList,
 } from "react-icons/fa";
+
 
 export const menuConfig = {
   admin: [
@@ -25,15 +26,31 @@ export const menuConfig = {
       path: "/user",
     },
     {
+      name: "Customer",
+      path: "/customer",
+      icon: FaUserTie,
+    },
+    {
       name: "Manager",
       icon: FaUserTie,
-      path: "/manager",
+      children: [
+        {
+          name: "All Manager",
+          path: "/manager",
+          icon: FaUsers,
+        },
+        {
+          name: "Leave Management",
+          path: "/leave-management",
+          icon: FaClipboardCheck,
+        },
+        {
+          name: "Today's Leave Overview",
+          path: "/todays-leave-summary",
+          icon: FaClipboardList,
+        },
+      ],
     },
-    // {
-    //   name: "Add Client Type",
-    //   icon: PlusCircle,
-    //   path: "/add-client-type",
-    // },
     {
       name: "HRMS",
       icon: FaLayerGroup,
