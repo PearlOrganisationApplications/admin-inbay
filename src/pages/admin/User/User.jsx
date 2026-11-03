@@ -65,21 +65,28 @@ const User = () => {
     return [...new Set(roles)];
   }, [users]);
 
-  const filteredUsers = useMemo(() => {
-    return users.filter((user) => {
+const filteredUsers = useMemo(() => {
+  return [...users]
+    .sort(
+      (a, b) =>
+        new Date(b.created_at || 0) - new Date(a.created_at || 0)
+    )
+    .filter((user) => {
       const matchesSearch =
         user.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         user.email?.toLowerCase().includes(searchQuery.toLowerCase());
+
       const matchesRole = roleFilter === "" || user.role === roleFilter;
 
-      // logic changed to use is_active (1 = Active, 0 = Inactive)
       const isActive = Number(user.is_active) === 1;
+
       const matchesStatus =
         statusFilter === "" ||
         (statusFilter === "Active" ? isActive : !isActive);
+
       return matchesSearch && matchesRole && matchesStatus;
     });
-  }, [users, searchQuery, roleFilter, statusFilter]);
+}, [users, searchQuery, roleFilter, statusFilter]);
 
   const totalUsers = users.length;
 
