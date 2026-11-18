@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "https://test.pearl-developer.com/Inbay_Innovations/public/api",
+  baseURL: "https://api.triveniconnect.cloud/api/",
   timeout: 10000,
   headers: {
     "Content-Type": "application/json",
