@@ -1,3 +1,5 @@
+import api from "../../../API/axios";
+
 export const fetchReport = async (
   reportType,
   selectedDay,
@@ -12,38 +14,30 @@ export const fetchReport = async (
   setSummary
 ) => {
   try {
-    let url = "";
+    let params = {};
 
     // DAILY
     if (reportType === "daily") {
-      url = `https://test.pearl-developer.com/Inbay_Innovations/public/api/daily-report?date=${selectedYear}-${selectedMonth}-${selectedDay}`;
+      params.date = `${selectedYear}-${selectedMonth}-${selectedDay}`;
     }
 
     // WEEKLY
     else if (reportType === "weekly") {
-      url = `https://test.pearl-developer.com/Inbay_Innovations/public/api/daily-report?start_date=${weeklyStartDate}&end_date=${weeklyEndDate}`;
+      params = { start_date: weeklyStartDate, end_date: weeklyEndDate };
     }
 
     // MONTHLY
     else if (reportType === "monthly") {
-      url = `https://test.pearl-developer.com/Inbay_Innovations/public/api/daily-report?month=${selectedMonth}&year=${selectedYear}`;
+      params = { month: selectedMonth, year: selectedYear };
     }
 
     // CUSTOM
     else if (reportType === "custom") {
-      url = `https://test.pearl-developer.com/Inbay_Innovations/public/api/daily-report?start_date=${customStartDate}&end_date=${customEndDate}`;
+      params = { start_date: customStartDate, end_date: customEndDate };
     }
 
-    const token = localStorage.getItem("token");
-
-    const res = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    });
-
-    const result = await res.json();
+    const res = await api.get("/daily-report", { params });
+    const result = res.data;
 
     setRawResponse?.(result);
 

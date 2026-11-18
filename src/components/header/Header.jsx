@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaBell, FaSearch, FaChevronDown } from "react-icons/fa";
 import toast from "react-hot-toast";
+import api from "../../API/axios";
 
 export default function Header() {
   const [open, setOpen] = useState(false);
@@ -22,18 +23,8 @@ export default function Header() {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const response = await fetch(
-          "https://test.pearl-developer.com/Inbay_Innovations/public/api/admin-profile",
-          {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-          },
-        );
-        const data = await response.json();
+        const response = await api.get("/admin-profile");
+        const data = response.data;
         if (data.user) setUser(data.user);
       } catch (error) {
         console.error("Profile error:", error);
@@ -44,18 +35,8 @@ export default function Header() {
 
   const handleLogout = async () => {
     try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(
-        "https://test.pearl-developer.com/Inbay_Innovations/public/api/admin-Logout",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
-      const data = await response.json();
+      const response = await api.post("/admin-Logout");
+      const data = response.data;
       localStorage.removeItem("token");
       localStorage.removeItem("user");
       toast.success(data.message || "Logged out successfully");

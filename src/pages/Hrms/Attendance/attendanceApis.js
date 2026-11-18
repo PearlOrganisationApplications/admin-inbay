@@ -1,3 +1,5 @@
+import api from "../../../API/axios";
+
 export const fetchAttendance = async (
   activeTab,
   selectedDay,
@@ -12,38 +14,30 @@ export const fetchAttendance = async (
   setSummary
 ) => {
   try {
-    let url = "";
+    let params = {};
 
     // DAILY
     if (activeTab === "daily") {
-      url = `https://test.pearl-developer.com/Inbay_Innovations/public/api/attendance/dashboard?date=${year}-${String(month).padStart(2, "0")}-${String(selectedDay).padStart(2, "0")}`;
+      params.date = `${year}-${String(month).padStart(2, "0")}-${String(selectedDay).padStart(2, "0")}`;
     }
 
     // WEEKLY
     else if (activeTab === "weekly") {
-      url = `https://test.pearl-developer.com/Inbay_Innovations/public/api/attendance/dashboard?start_date=${weeklyStartDate}&end_date=${weeklyEndDate}`;
+      params = { start_date: weeklyStartDate, end_date: weeklyEndDate };
     }
 
     // MONTHLY
     else if (activeTab === "monthly") {
-      url = `https://test.pearl-developer.com/Inbay_Innovations/public/api/attendance/dashboard?month=${month}&year=${year}`;
+      params = { month, year };
     }
 
     // CUSTOM
     else if (activeTab === "custom") {
-      url = `https://test.pearl-developer.com/Inbay_Innovations/public/api/attendance/dashboard?start_date=${customStartDate}&end_date=${customEndDate}`;
+      params = { start_date: customStartDate, end_date: customEndDate };
     }
 
-    const token = localStorage.getItem("token");
-
-    const res = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    });
-
-    const result = await res.json();
+    const res = await api.get("/attendance/dashboard", { params });
+    const result = res.data;
 
     setRawResponse?.(result);
 

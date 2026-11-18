@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import {
   Search,
   Filter,
@@ -26,8 +26,9 @@ const Manager = () => {
   const [managers, setManagers] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState("Active");
+  const [statusFilter, setStatusFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const managerFetchSequence = useRef(0);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -40,6 +41,8 @@ const Manager = () => {
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [selectedManagerData, setSelectedManagerData] = useState(null);
+  const [managerForStatusChange, setManagerForStatusChange] = useState(null);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
 
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
@@ -48,13 +51,70 @@ const Manager = () => {
 
 
   const [selectedUser, setSelectedUser] = useState(null);
-  useEffect(() => {
-    fetchManagers(setManagers);
+
+  const refreshManagers = useCallback(async () => {
+    const requestId = ++managerFetchSequence.current;
+
+    try {
+      const latestManagers = await fetchManagers();
+      if (requestId === managerFetchSequence.current) {
+        setManagers(latestManagers);
+      }
+    } catch (error) {
+      console.error(
+        "Manager API error:",
+        error.response?.data || error
+      );
+    }
   }, []);
+
+  const handleManagerCreated = useCallback(async () => {
+    setSearchQuery("");
+    setRoleFilter("");
+    setStatusFilter("");
+    setCurrentPage(1);
+    await refreshManagers();
+  }, [refreshManagers]);
+
+  useEffect(() => {
+    refreshManagers();
+  }, [refreshManagers]);
 
   const showToast = (message, type) => {
     setToast({ show: true, message, type });
     setTimeout(() => setToast({ show: false, message: "", type: "" }), 3000);
+  };
+
+  const handleStatusClick = (manager) => {
+    setManagerForStatusChange(manager);
+  };
+
+  const confirmStatusChange = async () => {
+    if (!managerForStatusChange || isUpdatingStatus) return;
+
+    setIsUpdatingStatus(true);
+    try {
+      const newStatus = await toggleManagerStatus(
+        managerForStatusChange.id,
+        Number(managerForStatusChange.is_active),
+        refreshManagers,
+        showToast
+      );
+      if (newStatus === null) return;
+
+      setManagers((currentManagers) =>
+        currentManagers.map((manager) =>
+          manager.id === managerForStatusChange.id
+            ? { ...manager, is_active: newStatus }
+            : manager
+        )
+      );
+      setStatusFilter("");
+      setCurrentPage(1);
+      setManagerForStatusChange(null);
+    } finally {
+      setIsUpdatingStatus(false);
+    }
   };
 
   const uniqueRoles = useMemo(() => {
@@ -118,9 +178,11 @@ const Manager = () => {
     a.click();
   };
 
-  // Helper to get the single user to display
-  // const displayUser = selectedManagerData?.assigned_users?.[0];
+ 
   const displayUser = selectedUser;
+  const isActivatingManager =
+    Number(managerForStatusChange?.is_active) !== 1;
+  const managerStatusAction = isActivatingManager ? "activate" : "deactivate";
 
   return (
     <div className="bg-gray-50 h-screen flex flex-col font-sans relative">
@@ -189,6 +251,7 @@ const Manager = () => {
             onChange={handleStatusFilter}
             className="w-full md:w-40 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm bg-white cursor-pointer transition-all appearance-none"
           >
+            <option value="">All Statuses</option>
             <option value="Active">Active</option>
             <option value="Inactive">Inactive</option>
           </select>
@@ -293,7 +356,7 @@ const Manager = () => {
                             <Eye size={18} />
                           </button>
                           <button
-                            onClick={() => toggleManagerStatus(m.id, Number(m.is_active))}
+                            onClick={() => handleStatusClick(m)}
                             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm border flex items-center gap-1 ${Number(m.is_active) === 1
                               ? "bg-red-50 text-red-600 border-red-200 hover:bg-red-600 hover:text-white"
                               : "bg-green-50 text-green-600 border-green-200 hover:bg-green-600 hover:text-white"
@@ -354,14 +417,7 @@ const Manager = () => {
                         <Eye size={18} /> View
                       </button>
                       <button
-                        onClick={() =>
-                          toggleManagerStatus(
-                            m.id,
-                            m.is_active,
-                            fetchManagers,
-                            showToast
-                          )
-                        }
+                        onClick={() => handleStatusClick(m)}
                         className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg font-semibold text-sm border ${Number(m.is_active) === 1 ? "bg-red-50 text-red-600 border-red-200" : "bg-green-50 text-green-600 border-green-200"
                           }`}
                       >
@@ -425,6 +481,62 @@ const Manager = () => {
 
       {/* NEW UPDATED View Manager Modal - MATCHING SCREENSHOT */}
 
+      {managerForStatusChange && (
+        <div
+          className="fixed inset-0 z-[120] flex items-center justify-center bg-black/40 p-4"
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby="manager-status-title"
+          aria-describedby="manager-status-description"
+        >
+          <div className="w-full max-w-sm rounded-xl bg-white p-5 shadow-xl">
+            <h2
+              id="manager-status-title"
+              className="text-lg font-semibold text-gray-900"
+            >
+              {isActivatingManager ? "Activate manager?" : "Deactivate manager?"}
+            </h2>
+            <p
+              id="manager-status-description"
+              className="mt-2 text-sm text-gray-600"
+            >
+              Are you sure you want to {managerStatusAction}{" "}
+              <span className="font-medium text-gray-900">
+                {managerForStatusChange.name}
+              </span>
+              ?
+            </p>
+            <div className="mt-5 flex justify-end gap-3">
+              <button
+                type="button"
+                disabled={isUpdatingStatus}
+                onClick={() => setManagerForStatusChange(null)}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isUpdatingStatus}
+                onClick={confirmStatusChange}
+                className={`rounded-lg px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50 ${
+                  isActivatingManager
+                    ? "bg-green-600 hover:bg-green-700"
+                    : "bg-red-600 hover:bg-red-700"
+                }`}
+              >
+                {isUpdatingStatus
+                  ? isActivatingManager
+                    ? "Activating..."
+                    : "Deactivating..."
+                  : isActivatingManager
+                    ? "Activate"
+                    : "Deactivate"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Create Modal */}
       {isModalOpen &&
@@ -436,7 +548,7 @@ const Manager = () => {
           isSubmitting={isSubmitting}
           setIsSubmitting={setIsSubmitting}
           showToast={showToast}
-          fetchManagers={fetchManagers}
+          refreshManagers={handleManagerCreated}
         />
       }
 

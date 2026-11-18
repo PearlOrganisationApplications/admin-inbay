@@ -10,7 +10,7 @@ const CreateManagerModal = ({
   isSubmitting,
   setIsSubmitting,
   showToast,
-  fetchManagers,
+  refreshManagers,
 }) => {
   if (!isOpen) return null;
 
@@ -45,7 +45,7 @@ const CreateManagerModal = ({
               setIsModalOpen,
               setFormData,
               showToast,
-              fetchManagers
+              refreshManagers
             )
           }
         >

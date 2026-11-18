@@ -1,5 +1,8 @@
 import React from "react";
 import { X } from "lucide-react";
+import api from "../../../../API/axios";
+
+const IMAGE_BASE = (api.defaults.baseURL || "").replace(/\/api\/?$/, "/");
 
 const ViewUserModal = ({
     isOpen,
@@ -19,9 +22,6 @@ const ViewUserModal = ({
                 <h2 className="text-lg font-bold text-slate-900">
                     {selectedManagerData?.manager_name}
                 </h2>
-                <p className="text-xs text-slate-500">
-                    Manager ID : {selectedManagerData?.manager_id}
-                </p>
             </div>
 
             <button
@@ -42,10 +42,6 @@ const ViewUserModal = ({
                 </h3>
 
                 <div className="flex justify-between mt-2 text-sm">
-                    <span className="text-slate-600">
-                        <strong>ID:</strong> {selectedManagerData?.manager_id}
-                    </span>
-
                     <span className="text-slate-600">
                         <strong>Users:</strong>{" "}
                         {selectedManagerData?.assigned_users?.length || 0}
@@ -71,7 +67,7 @@ const ViewUserModal = ({
                                 <img
                                     src={
                                         user?.profile_image
-                                            ? `https://test.pearl-developer.com/Inbay_Innovations/public/${user.profile_image}`
+                                            ? `${IMAGE_BASE}${user.profile_image}`
                                             : "https://via.placeholder.com/80"
                                     }
                                     alt={user.name}
@@ -118,11 +114,6 @@ const ViewUserModal = ({
 
                             {/* Details */}
                             <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-3 text-xs">
-
-                                <div>
-                                    <p className="text-slate-400">User ID</p>
-                                    <p className="font-medium">{user.id}</p>
-                                </div>
 
                                 <div>
                                     <p className="text-slate-400">Designation</p>

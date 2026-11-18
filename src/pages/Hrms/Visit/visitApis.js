@@ -1,5 +1,4 @@
-const BASE_URL =
-  "https://test.pearl-developer.com/Inbay_Innovations/public/api/daily-Summary";
+import api from "../../../API/axios";
 
 export const fetchVisitSummary = async (
   reportType,
@@ -18,29 +17,21 @@ export const fetchVisitSummary = async (
   try {
     setLoading(true);
 
-    let url = `${BASE_URL}?`;
+    let params = {};
 
     if (reportType === "daily") {
       const date = `${selectedYear}-${selectedMonth}-${selectedDay}`;
-      url += `date=${date}`;
+      params = { date };
     } else if (reportType === "weekly") {
-      url += `start_date=${weeklyStartDate}&end_date=${weeklyEndDate}`;
+      params = { start_date: weeklyStartDate, end_date: weeklyEndDate };
     } else if (reportType === "monthly") {
-      url += `month=${selectedMonth}&year=${selectedYear}`;
+      params = { month: selectedMonth, year: selectedYear };
     } else if (reportType === "custom") {
-      url += `start_date=${customStartDate}&end_date=${customEndDate}`;
+      params = { start_date: customStartDate, end_date: customEndDate };
     }
 
-    const token = localStorage.getItem("token");
-
-    const response = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    });
-
-    const json = await response.json();
+    const response = await api.get("/daily-Summary", { params });
+    const json = response.data;
 
     setRawResponse(json);
 
