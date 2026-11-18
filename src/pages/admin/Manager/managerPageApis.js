@@ -2,28 +2,23 @@
 import api from "../../../API/axios";
 
 // 1. Fetch All Managers
-export const fetchManagers = async (setManagers) => {
-  try {
-    const response = await api.get("/admin/managers");
+export const fetchManagers = async () => {
+  const response = await api.get("/admin/managers");
+  const data = response.data;
+  const managers = Array.isArray(data) ? data : data?.data;
 
-    const data = response.data;
-
-    setManagers?.(
-      Array.isArray(data) ? data : data?.data || []
-    );
-  } catch (error) {
-    console.error(
-      "Manager API error:",
-      error.response?.data || error
-    );
+  if (!Array.isArray(managers)) {
+    throw new Error("Unexpected managers API response");
   }
+
+  return managers;
 };
 
 // 2. Toggle Manager Status
 export const toggleManagerStatus = async (
   managerId,
   currentIsActive,
-  fetchManagers,
+  refreshManagers,
   showToast
 ) => {
   try {
@@ -31,7 +26,7 @@ export const toggleManagerStatus = async (
       Number(currentIsActive) === 1 ? 0 : 1;
 
     const response = await api.post(
-      "/admin/manager-status",
+      "/admin/user-status",
       {
         user_id: managerId,
         is_active: newStatus,
@@ -48,7 +43,7 @@ export const toggleManagerStatus = async (
         result.message || "Failed to update manager status",
         "error"
       );
-      return;
+      return null;
     }
 
     showToast?.(
@@ -59,7 +54,8 @@ export const toggleManagerStatus = async (
       "success"
     );
 
-    fetchManagers?.();
+    await refreshManagers?.();
+    return newStatus;
   } catch (error) {
     console.error(
       "Toggle manager status error:",
@@ -71,6 +67,7 @@ export const toggleManagerStatus = async (
         "Error connecting to server",
       "error"
     );
+    return null;
   }
 };
 
@@ -82,7 +79,7 @@ export const handleCreateManager = async (
   setIsModalOpen,
   setFormData,
   showToast,
-  fetchManagers
+  refreshManagers
 ) => {
   e.preventDefault();
   setIsSubmitting?.(true);
@@ -117,9 +114,10 @@ export const handleCreateManager = async (
       name: "",
       email: "",
       password: "",
+      hq: "",
     });
 
-    fetchManagers?.();
+    await refreshManagers?.();
   } catch (error) {
     console.error(
       "Create manager error:",
@@ -196,7 +194,8 @@ export const handleViewManager = async (
 ) => {
   try {
     const response = await api.get(
-      `/admin/manager/users/${managerId}`
+      // `/admin/manager/users/${managerId}`
+      `/admin/manager/${managerId}/users`
     );
 
     const result = response.data;

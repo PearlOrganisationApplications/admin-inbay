@@ -22,19 +22,6 @@ const Login = () => {
     try {
       setLoading(true);
 
-      // const response = await fetch(
-      //   "https://test.pearl-developer.com/Inbay_Innovations/public/api/admin-login",
-      //   {
-      //     method: "POST",
-      //     headers: {
-      //       "Content-Type": "application/json",
-      //     },
-      //     body: JSON.stringify({
-      //       email: email,
-      //       password: password,
-      //     }),
-      //   }
-      // );
       const response = await adminLogin({ email, password });
       const data = await response.data;
 

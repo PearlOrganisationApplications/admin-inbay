@@ -1,5 +1,4 @@
-const BASE_URL =
-  "https://test.pearl-developer.com/Inbay_Innovations/public/api/admin/expenses";
+import api from "../../API/axios";
 
 // ============================
 // FETCH EXPENSES LIST
@@ -11,16 +10,8 @@ export const fetchInitialData = async (
   setLoading(true);
 
   try {
-    const token = localStorage.getItem("token");
-
-    const res = await fetch(BASE_URL, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    });
-
-    const listData = await res.json();
+    const res = await api.get("/admin/expenses");
+    const listData = res.data;
 
     if (listData.success) {
       setExpenses(listData.data?.data || []);
@@ -47,24 +38,16 @@ export const fetchReport = async (
   setLoading(true);
 
   try {
-    let url = "";
+    let params;
 
     if (filterMode === "date" && startDate && endDate) {
-      url = `${BASE_URL}/report?start_date=${startDate}&end_date=${endDate}`;
+      params = { start_date: startDate, end_date: endDate };
     } else {
-      url = `${BASE_URL}/report?month=${month}&year=${year}`;
+      params = { month, year };
     }
 
-    const token = localStorage.getItem("token");
-
-    const res = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    });
-
-    const data = await res.json();
+    const res = await api.get("/admin/expenses/report", { params });
+    const data = res.data;
 
     if (data.success) {
       setReport(data);
@@ -89,16 +72,8 @@ export const fetchExpenseDetail = async (
   setIsModalOpen(true);
 
   try {
-    const token = localStorage.getItem("token");
-
-    const res = await fetch(`${BASE_URL}/${id}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    });
-
-    const data = await res.json();
+    const res = await api.get(`/admin/expenses/${id}`);
+    const data = res.data;
 
     if (data.success) {
       setSelectedExpense(data.data);

@@ -19,8 +19,8 @@ import {
 } from "lucide-react";
 import api from "../../API/axios";
 import { getUsersByManagerId } from "../../API/dashboardApis";
-const BASE_URL = "https://test.pearl-developer.com/Inbay_Innovations/public/api";
-const IMAGE_BASE = "https://test.pearl-developer.com/Inbay_Innovations/public/";
+const BASE_URL = "https://api.triveniconnect.cloud/api/";
+const IMAGE_BASE = "https://api.triveniconnect.cloud/api/";
 const DEFAULT_COUNTS = {
   total_users: 0,
   active_users: 0,

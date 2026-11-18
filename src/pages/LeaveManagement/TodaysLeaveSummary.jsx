@@ -265,7 +265,7 @@ const TodaysLeaveSummary = () => {
             </div>
 
 
-            {/* Employees on Leave Today */}
+
             <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                 <div className="border-b border-gray-200 p-5">
                     <h2 className="text-lg font-bold text-gray-800">
@@ -328,9 +328,12 @@ const TodaysLeaveSummary = () => {
                                         <td className="px-5 py-4 text-gray-600">
                                             {employee.total_days ?? 0}
                                         </td>
-
-                                        <td className="max-w-xs px-5 py-4 text-gray-600">
-                                            {employee.reason || "—"}
+                                        <td className="w-[150px] max-w-[150px] px-5 py-4 text-gray-600">
+                                            <span className="block truncate" title={employee.reason || "—"}>
+                                                {employee.reason
+                                                    ? employee.reason.split(" ").slice(0, 2).join(" ") + (employee.reason.split(" ").length > 2 ? "..." : "")
+                                                    : "—"}
+                                            </span>
                                         </td>
 
                                         <td className="px-5 py-4">

@@ -100,17 +100,6 @@ const ViewUserModal = ({
         {/* Details */}
         <div className="p-4 grid grid-cols-2 gap-3">
 
-          <Item
-            icon={<BadgeCheck size={14} />}
-            label="User ID"
-            value={selectedUser.id}
-          />
-
-          <Item
-            icon={<Shield size={14} />}
-            label="Manager ID"
-            value={selectedUser.manager_id}
-          />
 
           <Item
             icon={<Briefcase size={14} />}

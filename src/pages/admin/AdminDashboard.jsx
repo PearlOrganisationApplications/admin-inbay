@@ -763,9 +763,7 @@ export default function Dashboard() {
                   User Details
                 </h2>
 
-                {id && (
-                  <p className="text-xs text-gray-400 mt-1">User ID: {id}</p>
-                )}
+              
               </div>
 
               <button

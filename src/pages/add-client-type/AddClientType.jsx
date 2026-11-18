@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import api from "../../API/axios";
 import {
     FaPlus,
     FaEdit,
@@ -24,7 +25,6 @@ const AddClientType = () => {
 
     const [editId, setEditId] = useState(null);
 
-    const token = localStorage.getItem("token");
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 5;
 
@@ -78,16 +78,8 @@ const AddClientType = () => {
         try {
             setLoading(true);
 
-            const res = await fetch(
-                "https://test.pearl-developer.com/Inbay_Innovations/public/api/admin/client-types",
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                }
-            );
-
-            const result = await res.json();
+            const res = await api.get("/admin/client-types");
+            const result = res.data;
             setClientTypes(result.data || []);
         } catch (error) {
             console.log(error);
@@ -115,9 +107,6 @@ const AddClientType = () => {
         try {
             setLoading(true);
 
-            let url =
-                "https://test.pearl-developer.com/Inbay_Innovations/public/api/admin/client-types";
-
             // First Letter Capital Logic
             const capitalizeFirst = (text) =>
                 text.trim().charAt(0).toUpperCase() + text.trim().slice(1);
@@ -129,32 +118,26 @@ const AddClientType = () => {
             payload.append("type_name", typeName);
             payload.append("description", description);
 
-            if (editId) {
-                url = `${url}/${editId}`;
-            }
-
-            const res = await fetch(url, {
-                method: "POST",
+            const url = editId
+                ? `/admin/client-types/${editId}`
+                : "/admin/client-types";
+            const res = await api.post(url, payload, {
                 headers: {
-                    Authorization: `Bearer ${token}`,
                     Accept: "application/json",
                 },
-                body: payload,
             });
 
-            const result = await res.json();
+            const result = res.data;
             toast.success(result.message);
 
-            if (res.ok) {
-                fetchClientTypes();
-                setShowForm(false);
-                setEditId(null);
+            fetchClientTypes();
+            setShowForm(false);
+            setEditId(null);
 
-                setFormData({
-                    type_name: "",
-                    description: "",
-                });
-            }
+            setFormData({
+                type_name: "",
+                description: "",
+            });
         } catch (error) {
             console.log(error);
             toast.error("Something went wrong");
@@ -182,15 +165,7 @@ const AddClientType = () => {
 
     const confirmDelete = async () => {
         try {
-            await fetch(
-                `https://test.pearl-developer.com/Inbay_Innovations/public/api/admin/client-types/${deleteId}`,
-                {
-                    method: "DELETE",
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                }
-            );
+            await api.delete(`/admin/client-types/${deleteId}`);
 
             toast.success("Deleted Successfully");
 
